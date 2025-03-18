@@ -15,19 +15,21 @@ class BluetoothScreen extends StatefulWidget {
 }
 
 class _BluetoothScreenState extends State<BluetoothScreen> {
-  List<ScanResult> _scanResults = []; // Change to ScanResult
+  List<ScanResult> _scanResults = [];
   bool _isScanning = false;
   StreamSubscription<List<ScanResult>>? _scanSubscription;
   StreamSubscription<bool>? _isScanningSubscription;
   late PixelLightsViewModel _viewModel;
+
+  // New: Search-related variables
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _viewModel = context.read<PixelLightsViewModel>();
     if (_viewModel.bluetoothDevice == null) {
-      // Added to make sure we aren't running if already connected.
-      // Call the new method to check permissions before starting the scan.
       _checkAndStartBluetoothScan(_viewModel);
     }
     _isScanningSubscription = _viewModel.bluetoothService.isScanningStream
@@ -42,7 +44,6 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     ) {
       if (!mounted) return;
       setState(() {
-        //_scanResults = results;
         _scanResults.clear();
         for (ScanResult result in results) {
           if (result.device.name.isNotEmpty) {
@@ -51,24 +52,33 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         }
       });
     });
+
+    // New: Listen for changes in the search box
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _scanSubscription?.cancel();
     _isScanningSubscription?.cancel();
+    _searchController.removeListener(_onSearchChanged); // Remove listener
+    _searchController.dispose(); // Dispose controller
     super.dispose();
   }
 
-  // New method to check and request permissions.
+  // New: Method to handle search query changes
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.trim().toLowerCase();
+    });
+  }
+
   Future<void> _checkAndStartBluetoothScan(
     PixelLightsViewModel viewModel,
   ) async {
     if (Platform.isAndroid) {
-      // Check for Bluetooth permissions on Android.
       bool hasPermissions = await _requestBluetoothPermissions();
       if (!hasPermissions) {
-        // Permissions were not granted, handle accordingly (e.g., show an error).
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -79,18 +89,16 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         return;
       }
     }
-    // If permissions are granted or not on Android, start the scan.
     _startBluetoothScan(viewModel);
   }
 
-  // New method to request Bluetooth permissions.
   Future<bool> _requestBluetoothPermissions() async {
     Map<Permission, PermissionStatus> statuses =
         await [
           Permission.bluetoothScan,
           Permission.bluetoothConnect,
           Permission.bluetooth,
-          Permission.location, // required for bluetooth scan
+          Permission.location,
         ].request();
 
     bool allGranted = true;
@@ -157,6 +165,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // New: Filter the scan results based on the search query
+    final filteredResults =
+        _scanResults.where((result) {
+          final deviceName = result.device.name.toLowerCase();
+          return deviceName.contains(_searchQuery);
+        }).toList();
+
     return Consumer<PixelLightsViewModel>(
       builder: (context, viewModel, child) {
         return Scaffold(
@@ -170,6 +185,31 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ? "Connected to ${viewModel.bluetoothDevice?.name}"
                         : "Not connected.",
                   ),
+                  // New: Search box
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: Colors.white,
+                      decoration: const InputDecoration(
+                        labelText: 'Search for devices',
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.search, color: Colors.white),
+                        enabledBorder: const OutlineInputBorder(
+                          // Set border color when not focused
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          // Set border color when focused
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(
@@ -179,11 +219,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         right: 20,
                       ),
                       child: ListView.builder(
-                        itemCount: _scanResults.length,
+                        itemCount:
+                            filteredResults.length, // Use filtered results
                         itemBuilder: (context, index) {
-                          ScanResult result = _scanResults[index];
+                          ScanResult result =
+                              filteredResults[index]; // Use filtered results
                           BluetoothDevice device = result.device;
-                          int rssi = result.rssi; // Get RSSI here
+                          int rssi = result.rssi;
                           Color backgroundColor =
                               index % 2 == 0
                                   ? Colors.grey[300]!.withOpacity(0.8)
@@ -198,7 +240,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                               ),
                               subtitle: Text(
                                 '${device.remoteId.str} | RSSI: $rssi dBm',
-                              ), // Display RSSI
+                              ),
                               trailing:
                                   viewModel.bluetoothDevice != null &&
                                           device == viewModel.bluetoothDevice
