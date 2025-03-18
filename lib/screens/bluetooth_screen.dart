@@ -42,7 +42,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     ) {
       if (!mounted) return;
       setState(() {
-        _scanResults = results;
+        //_scanResults = results;
+        _scanResults.clear();
+        for (ScanResult result in results) {
+          if (result.device.name.isNotEmpty) {
+            _scanResults.add(result);
+          }
+        }
       });
     });
   }

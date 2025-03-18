@@ -2,30 +2,47 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class CustomHuePicker extends StatefulWidget {
-  final double width; // Add width parameter
+  final double width;
   final Function(Color) onColorChanged;
+  final Function(Color, bool)
+  onColorChangeEnd; // New: Callback with color and boolean
   final TextStyle textStyle;
   final HSVColor hsvColor;
 
   CustomHuePicker({
-    super.key,
+    Key? key,
     required Color color,
-    required this.width, // Make width required
+    required this.width,
     required this.onColorChanged,
+    required this.onColorChangeEnd, // Make this required
     this.textStyle = const TextStyle(fontSize: 16),
-  }) : hsvColor = HSVColor.fromColor(color);
+  }) : hsvColor = HSVColor.fromColor(color),
+       super(key: key);
 
   @override
   State<CustomHuePicker> createState() => _CustomHuePickerState();
 }
 
 class _CustomHuePickerState extends State<CustomHuePicker> {
-  Color get _color {
-    return widget.hsvColor.toColor();
+  late HSVColor _currentHsvColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentHsvColor = widget.hsvColor;
   }
 
-  // in _CustomHuePickerState
-  void _updateColorFromOffset(Offset localOffset, double size) {
+  @override
+  void didUpdateWidget(covariant CustomHuePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.hsvColor != oldWidget.hsvColor) {
+      _currentHsvColor = widget.hsvColor;
+    }
+  }
+
+  Color get _color => _currentHsvColor.toColor();
+
+  void _updateColorFromOffset(Offset localOffset, double size, bool isFinal) {
     RenderBox? getBox = context.findRenderObject() as RenderBox?;
     if (getBox == null) {
       return;
@@ -49,12 +66,17 @@ class _CustomHuePickerState extends State<CustomHuePicker> {
         360;
 
     double hue = ((rad + 90) % 360).clamp(0, 360);
-    widget.hsvColor.withHue(hue).withSaturation(dist);
+
+    _currentHsvColor = _currentHsvColor.withHue(hue).withSaturation(dist);
 
     setState(() {
-      final color = HSVColor.fromAHSV(1.0, hue, dist, 1.0).toColor();
-      widget.onColorChanged(color);
+      // Update the indicator circle immediately
     });
+
+    if (isFinal) {
+      final color = HSVColor.fromAHSV(1.0, hue, dist, 1.0).toColor();
+      widget.onColorChangeEnd(color, true); // Send the final color and true
+    }
   }
 
   @override
@@ -69,13 +91,35 @@ class _CustomHuePickerState extends State<CustomHuePicker> {
             aspectRatio: 1.0,
             child: GestureDetector(
               onPanUpdate: (details) {
-                _updateColorFromOffset(details.localPosition, widget.width);
+                _updateColorFromOffset(
+                  details.localPosition,
+                  widget.width,
+                  false,
+                );
               },
               onTapDown: (details) {
-                _updateColorFromOffset(details.localPosition, widget.width);
+                _updateColorFromOffset(
+                  details.localPosition,
+                  widget.width,
+                  false,
+                );
+              },
+              onPanEnd: (details) {
+                _updateColorFromOffset(
+                  details.localPosition,
+                  widget.width,
+                  true,
+                );
+              },
+              onTapUp: (details) {
+                _updateColorFromOffset(
+                  details.localPosition,
+                  widget.width,
+                  true,
+                );
               },
               child: CustomPaint(
-                painter: HUEColorWheelPainter(widget.hsvColor),
+                painter: HUEColorWheelPainter(_currentHsvColor),
               ),
             ),
           ),
@@ -152,14 +196,10 @@ class HUEColorWheelPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
 
 bool useWhiteForeground(Color backgroundColor, {double bias = 0.0}) {
-  // Old:
-  // return 1.05 / (color.computeLuminance() + 0.05) > 4.5;
-
-  // New:
   int v =
       sqrt(
         pow(backgroundColor.red, 2) * 0.299 +

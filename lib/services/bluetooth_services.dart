@@ -24,8 +24,6 @@ abstract class IBluetoothService {
 }
 
 class PixelBluetoothService implements IBluetoothService {
-  //final StreamController<List<ScanResult>> _scanResultsController = StreamController<List<ScanResult>>.broadcast(); //No longer needed.
-  //StreamSubscription<List<ScanResult>>? _scanSubscription; //no longer needed.
   final StreamController<bool> _isScanningController =
       StreamController<bool>.broadcast(); //new stream controller.
   Timer? _scanTimer; // Add a timer variable.

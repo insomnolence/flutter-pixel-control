@@ -14,6 +14,7 @@ class ManualScreen extends StatefulWidget {
 
 class _ManualScreenState extends State<ManualScreen> {
   String? selectedPattern;
+  bool _isSliderChanging = false;
 
   // Helper function to convert a percentage (0-100) to a value in the 0-255 range
   int _percentageToValue(double percentage) {
@@ -28,13 +29,6 @@ class _ManualScreenState extends State<ManualScreen> {
   @override
   void initState() {
     super.initState();
-  }
-
-  void processPacket(
-    PixelLightsViewModel viewModel, {
-    bool controlPkt = false,
-  }) {
-    viewModel.processPacketInformation(controlPacket: controlPkt);
   }
 
   @override
@@ -56,8 +50,7 @@ class _ManualScreenState extends State<ManualScreen> {
                       Expanded(
                         flex: 2,
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.stretch, // THIS IS THE FIX!
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _buildSliderSection(
                               "Intensity",
@@ -68,8 +61,10 @@ class _ManualScreenState extends State<ManualScreen> {
                                 viewModel.intensityValue = _percentageToValue(
                                   percentage,
                                 );
-                                processPacket(viewModel, controlPkt: true);
                               }),
+                              () => viewModel.processPacketInformation(
+                                controlPacket: true,
+                              ), // onSliderEnd
                             ),
                             _buildSliderSection(
                               "Rate",
@@ -80,8 +75,10 @@ class _ManualScreenState extends State<ManualScreen> {
                                 viewModel.rateValue = _percentageToValue(
                                   percentage,
                                 );
-                                processPacket(viewModel, controlPkt: true);
                               }),
+                              () => viewModel.processPacketInformation(
+                                controlPacket: true,
+                              ), // onSliderEnd
                             ),
                             _buildSliderSection(
                               "Level",
@@ -92,8 +89,10 @@ class _ManualScreenState extends State<ManualScreen> {
                                 viewModel.levelValue = _percentageToValue(
                                   percentage,
                                 );
-                                processPacket(viewModel, controlPkt: true);
                               }),
+                              () => viewModel.processPacketInformation(
+                                controlPacket: true,
+                              ), // onSliderEnd
                             ),
                             const SizedBox(height: 16),
                             _buildPatternDropdown(viewModel),
@@ -120,8 +119,14 @@ class _ManualScreenState extends State<ManualScreen> {
           viewModel.color1,
           (color) => setState(() {
             viewModel.color1 = color;
-            processPacket(viewModel, controlPkt: true);
           }),
+          (color, shouldProcessPacket) {
+            // onColorChangeEnd
+            viewModel.color1 = color;
+            if (shouldProcessPacket) {
+              viewModel.processPacketInformation(controlPacket: false);
+            }
+          },
         ),
         const SizedBox(height: 40),
         _buildColorSection(
@@ -129,8 +134,14 @@ class _ManualScreenState extends State<ManualScreen> {
           viewModel.color2,
           (color) => setState(() {
             viewModel.color2 = color;
-            processPacket(viewModel, controlPkt: true);
           }),
+          (color, shouldProcessPacket) {
+            // onColorChangeEnd
+            viewModel.color2 = color;
+            if (shouldProcessPacket) {
+              viewModel.processPacketInformation(controlPacket: false);
+            }
+          },
         ),
         const SizedBox(height: 40),
         _buildColorSection(
@@ -138,8 +149,14 @@ class _ManualScreenState extends State<ManualScreen> {
           viewModel.color3,
           (color) => setState(() {
             viewModel.color3 = color;
-            processPacket(viewModel, controlPkt: true);
           }),
+          (color, shouldProcessPacket) {
+            // onColorChangeEnd
+            viewModel.color3 = color;
+            if (shouldProcessPacket) {
+              viewModel.processPacketInformation(controlPacket: false);
+            }
+          },
         ),
       ],
     );
@@ -149,6 +166,7 @@ class _ManualScreenState extends State<ManualScreen> {
     String title,
     Color currentColor,
     Function(Color) onColorChanged,
+    Function(Color, bool) onColorChangeEnd, // New callback with boolean
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,6 +178,7 @@ class _ManualScreenState extends State<ManualScreen> {
           child: CustomHuePicker(
             color: currentColor,
             onColorChanged: onColorChanged,
+            onColorChangeEnd: onColorChangeEnd, // Pass the callback
             width: 120,
             textStyle: const TextStyle(fontSize: 16, color: Colors.white),
           ),
@@ -174,6 +193,7 @@ class _ManualScreenState extends State<ManualScreen> {
     double max,
     double percentage,
     Function(double) onPercentageChanged,
+    Function() onSliderEnd, // New callback
   ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -183,13 +203,23 @@ class _ManualScreenState extends State<ManualScreen> {
         Row(
           children: [
             Expanded(
-              // Expanded here is correct.
               child: Slider(
                 min: min,
                 max: max,
                 value: percentage,
                 onChanged: (newPercentage) {
                   onPercentageChanged(newPercentage);
+                  if (!_isSliderChanging) {
+                    setState(() {
+                      _isSliderChanging = true;
+                    });
+                  }
+                },
+                onChangeEnd: (newPercentage) {
+                  onSliderEnd();
+                  setState(() {
+                    _isSliderChanging = false;
+                  });
                 },
                 activeColor: Colors.white.withOpacity(0.8),
                 inactiveColor: Colors.grey.withOpacity(0.5),
@@ -216,9 +246,7 @@ class _ManualScreenState extends State<ManualScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButton<Pattern>(
-        value:
-            viewModel
-                .patternValue, // Directly use viewModel.patternValue as the selected value.
+        value: viewModel.patternValue,
         dropdownColor: Colors.blue[200],
         onChanged: (Pattern? newValue) {
           if (newValue != null) {

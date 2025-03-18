@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 // --- Data Structures ---
 enum PixelCommand {
-  HC_NONE(0),
-  HC_CONTROL(1),
-  HC_PATTERN(2);
+  HC_NONE(0), // No Command
+  HC_CONTROL(1), // Brightness and Speed
+  HC_PATTERN(2); // Patterns
 
   final int code;
   const PixelCommand(this.code);
@@ -35,8 +35,16 @@ class Packet {
   List<int> color = List.filled(3, 0); // UIntArray in kotlin.
   List<int> level = List.filled(3, 0); // UByteArray in kotlin.
 
-  Packet(this.command, this.brightness, this.speed, this.pattern, int color1,
-      int color2, int color3, int level1) {
+  Packet(
+    this.command,
+    this.brightness,
+    this.speed,
+    this.pattern,
+    int color1,
+    int color2,
+    int color3,
+    int level1,
+  ) {
     color[0] = color1;
     color[1] = color2;
     color[2] = color3;
