@@ -127,12 +127,11 @@ class PixelLightsViewModel extends ChangeNotifier {
   }
 
   Future<void> sendPattern(pixel_patterns.Steps steps) async {
-    if (completer != null) {
-      debugPrint("sendPattern: completer is not null. Stopping.");
-      completer?.complete();
-      completer = null;
+    if (completer != null && !completer!.isCompleted) {
+      completer!.complete();
     }
     completer = Completer();
+    final currentCompleter = completer;
     final iterator = steps.iterator; // get the iterator
     while (iterator.moveNext()) {
       // use the while loop, and moveNext()
@@ -150,14 +149,23 @@ class PixelLightsViewModel extends ChangeNotifier {
 
       await _bluetoothService.writeCharacteristic(_txCharacteristic, packet);
       debugPrint("UsePattern: writing packet");
+      if (currentCompleter!.isCompleted) {
+        debugPrint("sendPattern: completer completed. Stopping.");
+        return;
+      }
       await Future.delayed(Duration(milliseconds: i.duration * 1000));
       if (_isDisposed) {
         debugPrint("sendPattern: is disposed.");
         return;
       }
+      if (currentCompleter!.isCompleted) {
+        debugPrint("sendPattern: completer completed. Stopping.");
+        return;
+      }
     }
-    completer?.complete();
-    completer = null;
+    if (!currentCompleter!.isCompleted) {
+      currentCompleter.complete();
+    }
   }
 
   Future<void> processPacketInformation({bool controlPacket = false}) async {
@@ -200,7 +208,9 @@ class PixelLightsViewModel extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     packetStream?.cancel();
-    completer?.complete();
+    if (completer != null && !completer!.isCompleted) {
+      completer!.complete();
+    }
     completer = null;
     _connectionStateSubscription?.cancel();
     _bluetoothService.dispose(); // Call the dispose on the bluetoothService
