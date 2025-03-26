@@ -5,7 +5,7 @@ class CustomHuePicker extends StatefulWidget {
   final double width;
   final Function(Color) onColorChanged;
   final Function(Color, bool)
-  onColorChangeEnd; // New: Callback with color and boolean
+  onColorChangeEnd; // Callback with color and boolean
   final TextStyle textStyle;
   final HSVColor hsvColor;
 

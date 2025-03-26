@@ -166,7 +166,7 @@ class _ManualScreenState extends State<ManualScreen> {
     String title,
     Color currentColor,
     Function(Color) onColorChanged,
-    Function(Color, bool) onColorChangeEnd, // New callback with boolean
+    Function(Color, bool) onColorChangeEnd, // callback with boolean
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +193,7 @@ class _ManualScreenState extends State<ManualScreen> {
     double max,
     double percentage,
     Function(double) onPercentageChanged,
-    Function() onSliderEnd, // New callback
+    Function() onSliderEnd, // callback
   ) {
     return Column(
       mainAxisSize: MainAxisSize.min,

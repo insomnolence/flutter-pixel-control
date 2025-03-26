@@ -21,7 +21,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   StreamSubscription<bool>? _isScanningSubscription;
   late PixelLightsViewModel _viewModel;
 
-  // New: Search-related variables
+  // Search-related variables
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -53,7 +53,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       });
     });
 
-    // New: Listen for changes in the search box
+    // Listen for changes in the search box
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -66,7 +66,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     super.dispose();
   }
 
-  // New: Method to handle search query changes
+  // Method to handle search query changes
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text.trim().toLowerCase();
@@ -165,7 +165,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // New: Filter the scan results based on the search query
+    // Filter the scan results based on the search query
     final filteredResults =
         _scanResults.where((result) {
           final deviceName = result.device.name.toLowerCase();
@@ -185,7 +185,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ? "Connected to ${viewModel.bluetoothDevice?.name}"
                         : "Not connected.",
                   ),
-                  // New: Search box
+                  // Search box
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(

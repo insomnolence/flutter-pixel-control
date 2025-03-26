@@ -29,7 +29,7 @@ class PixelBluetoothService implements IBluetoothService {
   Timer? _scanTimer; // Add a timer variable.
 
   // *** CRUCIAL: Double-Check These UUIDs ***
-  // These are the ones that MUST match your ESP32 code *exactly*.
+  // These are the ones that MUST match the ones in the ESP32 code *exactly*.
   static const String UART_SERVICE =
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; // Example
   static const String UART_TX =
@@ -157,11 +157,11 @@ class PixelBluetoothService implements IBluetoothService {
         return null;
       }
 
-      // **HERE'S THE NEW DEBUGGING CODE**
+      // Debugging prints
       debugPrint("Discovered Services:");
       for (BluetoothService service in services) {
         debugPrint("  Service UUID: ${service.uuid.toString()}");
-        // New: Print out the characteristics for each service.
+        // Print out the characteristics for each service.
         debugPrint("    Characteristics:");
         for (BluetoothCharacteristic characteristic
             in service.characteristics) {
@@ -254,7 +254,7 @@ class PixelBluetoothService implements IBluetoothService {
 
     // Message to send
     final num = bytesToSendPosition ~/ maxChunkSize + 1;
-    // Correct the sublist call.
+
     final bytesRemaining = bytesToSend.length - bytesToSendPosition;
     final chunkSize =
         bytesRemaining < maxChunkSize ? bytesRemaining : maxChunkSize;
@@ -270,7 +270,7 @@ class PixelBluetoothService implements IBluetoothService {
       bytesToSend = null;
       bytesToSendPosition = 0;
     }
-    // **NEW DEBUG CODE HERE**
+
     // Print the raw bytes being sent
     debugPrint("BluetoothPacketSender: Sending raw bytes: $sendByte");
 

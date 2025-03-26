@@ -41,19 +41,19 @@ class PixelLightsViewModel extends ChangeNotifier {
   BluetoothDevice? get bluetoothDevice => _bluetoothDevice;
   BluetoothCharacteristic? get txCharacteristic => _txCharacteristic;
 
-  // New method to start scanning.
+  // Method to start scanning.
   Future<void> startBluetoothScan() async {
     await _bluetoothService.startScan(timeout: const Duration(seconds: 15));
     notifyListeners();
   }
 
-  // New method to stop scanning.
+  // Method to stop scanning.
   Future<void> stopBluetoothScan() async {
     await _bluetoothService.stopScan();
     notifyListeners();
   }
 
-  // New method to connect to a device.
+  // Method to connect to a device.
   Future<void> connectToDevice(BluetoothDevice device) async {
     try {
       _connectionStateSubscription
@@ -108,7 +108,7 @@ class PixelLightsViewModel extends ChangeNotifier {
     }
   }
 
-  // New method to disconnect from a device.
+  // Method to disconnect from a device.
   Future<void> disconnectDevice() async {
     if (_bluetoothDevice != null) {
       await _bluetoothService.disconnect(_bluetoothDevice!);

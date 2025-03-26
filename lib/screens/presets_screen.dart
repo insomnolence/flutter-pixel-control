@@ -91,7 +91,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
   }
 }
 
-// New Button Widget:
+// Button Widget:
 class PresetButton extends StatelessWidget {
   final String patternName;
   final String? imagePath;
