@@ -1,5 +1,11 @@
 import 'package:pixel_lights/models/packet.dart';
 import 'package:flutter/material.dart';
+import 'package:pixel_lights/core/constants/app_colors.dart';
+
+// Helper function to convert Flutter ARGB color to ESP32 RGB format
+int colorToRGB(int flutterColorValue) {
+  return flutterColorValue & 0x00FFFFFF; // Strip alpha channel
+}
 
 class Step {
   final int duration;
@@ -66,9 +72,9 @@ Map<String, Steps> patterns = {
           100,
           255,
           Pattern.Flash,
-          Colors.yellow.value,
-          Colors.yellow.value,
-          Colors.yellow.value,
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.value),
         );
         steps.addStep(
           60,
@@ -76,9 +82,9 @@ Map<String, Steps> patterns = {
           40,
           34,
           Pattern.March,
-          Colors.yellow.value,
-          Colors.yellow.value,
-          Colors.yellow.value,
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.value),
         );
         steps.addStep(
           60,
@@ -86,9 +92,9 @@ Map<String, Steps> patterns = {
           100,
           75,
           Pattern.MiniTwinkle,
-          Colors.yellow.value,
-          Color(0xFFFFFC40).value,
-          Colors.yellow.value,
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(Color(0xFFFFFC40).value),
+          colorToRGB(AppColors.pureYellow.value),
         );
         steps.addStep(
           0,
@@ -96,9 +102,9 @@ Map<String, Steps> patterns = {
           75,
           75,
           Pattern.Gradient,
-          Colors.yellow.value,
-          Color(0xFFFFFC40).value,
-          Colors.yellow.value,
+          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(Color(0xFFFFFC40).value),
+          colorToRGB(AppColors.pureYellow.value),
         );
         return steps;
       })(),
@@ -111,9 +117,9 @@ Map<String, Steps> patterns = {
           100,
           255,
           Pattern.Flash,
-          Colors.red.value,
-          Colors.red.value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.value),
         );
         steps.addStep(
           60,
@@ -121,9 +127,9 @@ Map<String, Steps> patterns = {
           40,
           34,
           Pattern.March,
-          Colors.red.value,
-          Colors.red.value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.value),
         );
         steps.addStep(
           60,
@@ -131,9 +137,9 @@ Map<String, Steps> patterns = {
           100,
           75,
           Pattern.MiniTwinkle,
-          Colors.red.value,
-          Color(0xFFFF4040).value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(Color(0xFFFF4040).value),
+          colorToRGB(AppColors.pureRed.value),
         );
         steps.addStep(
           0,
@@ -141,9 +147,9 @@ Map<String, Steps> patterns = {
           75,
           75,
           Pattern.Gradient,
-          Colors.red.value,
-          Color(0xFFFF4040).value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(Color(0xFFFF4040).value),
+          colorToRGB(AppColors.pureRed.value),
         );
         return steps;
       })(),
@@ -158,9 +164,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -176,9 +182,9 @@ Map<String, Steps> patterns = {
           35,
           17,
           Pattern.Gradient,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureRed.value),
         );
         steps.addStepClass(
           Step(
@@ -188,9 +194,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -206,9 +212,9 @@ Map<String, Steps> patterns = {
           75,
           75,
           Pattern.Gradient,
-          Colors.blue.value,
-          Color(0xFF8080FF).value,
-          Colors.blue.value,
+          colorToRGB(AppColors.pureBlue.value),
+          colorToRGB(Color(0xFF8080FF).value),
+          colorToRGB(AppColors.pureBlue.value),
         );
         steps.addStepClass(
           Step(
@@ -218,9 +224,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -236,9 +242,9 @@ Map<String, Steps> patterns = {
           160,
           160,
           Pattern.MiniTwinkle,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.blue.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureBlue.value),
         );
         steps.addStepClass(
           Step(
@@ -248,9 +254,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -266,9 +272,9 @@ Map<String, Steps> patterns = {
           65,
           255,
           Pattern.CandyCane,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.green.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureGreen.value),
         );
         steps.addStepClass(
           Step(
@@ -278,9 +284,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -296,9 +302,9 @@ Map<String, Steps> patterns = {
           100,
           255,
           Pattern.CandyCane,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.red.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureRed.value),
         );
         steps.addStepClass(
           Step(
@@ -308,9 +314,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -326,9 +332,9 @@ Map<String, Steps> patterns = {
           100,
           255,
           Pattern.Fixed,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.green.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureGreen.value),
         );
         steps.addStepClass(
           Step(
@@ -338,9 +344,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -356,9 +362,9 @@ Map<String, Steps> patterns = {
           127,
           8,
           Pattern.March,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.green.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureGreen.value),
         );
         steps.addStepClass(
           Step(
@@ -368,9 +374,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -386,9 +392,9 @@ Map<String, Steps> patterns = {
           127,
           8,
           Pattern.Wipe,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.green.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureGreen.value),
         );
         steps.addStepClass(
           Step(
@@ -398,9 +404,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -416,9 +422,9 @@ Map<String, Steps> patterns = {
           255,
           9,
           Pattern.MiniSparkle,
-          Colors.red.value,
-          Colors.white.value,
-          Colors.green.value,
+          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureGreen.value),
         );
         steps.addStepClass(
           Step(
@@ -428,9 +434,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -446,9 +452,9 @@ Map<String, Steps> patterns = {
           100,
           128,
           Pattern.MiniTwinkle,
-          Color(0xFF00FFFF).value,
-          Color(0xFFFF00FF).value,
-          Colors.yellow.value,
+          colorToRGB(Color(0xFF00FFFF).value),
+          colorToRGB(Color(0xFFFF00FF).value),
+          colorToRGB(AppColors.pureYellow.value),
         );
         steps.addStepClass(
           Step(
@@ -458,9 +464,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -476,9 +482,9 @@ Map<String, Steps> patterns = {
           100,
           255,
           Pattern.Rainbow,
-          Colors.white.value,
-          Colors.white.value,
-          Colors.white.value,
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.value),
         );
         steps.addStepClass(
           Step(
@@ -488,9 +494,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -506,9 +512,9 @@ Map<String, Steps> patterns = {
           128,
           255,
           Pattern.Strobe,
-          Colors.white.value,
-          Colors.white.value,
-          Colors.white.value,
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.value),
         );
         steps.addStepClass(
           Step(
@@ -518,9 +524,9 @@ Map<String, Steps> patterns = {
               20,
               35,
               Pattern.Gradient,
-              Colors.red.value,
-              Colors.white.value,
-              Colors.green.value,
+              colorToRGB(AppColors.pureRed.value),
+              colorToRGB(AppColors.pureWhite.value),
+              colorToRGB(AppColors.pureGreen.value),
               17,
             ),
           ),
@@ -546,20 +552,20 @@ final Map<String, List<Color>> patternGradients = {
     Color.fromARGB(255, 0, 255, 242), // aqua
     Color.fromARGB(255, 255, 102, 0), // orange
   ],
-  "RWR Subtle": const [Colors.red, Colors.white, Colors.red],
+  "RWR Subtle": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureRed],
   "Blue Smooth": const [
-    Colors.blue,
+    AppColors.pureBlue,
     Color.fromARGB(255, 167, 181, 255),
     Color.from(alpha: 255, red: 218, green: 218, blue: 255),
   ],
-  "RWB Paris": const [Colors.red, Colors.white, Colors.blue],
-  "RWG Candy": const [Colors.red, Colors.white, Colors.green],
-  "RWR Candy": const [Colors.red, Colors.white, Colors.red],
-  "RWG Tree": const [Colors.red, Colors.white, Colors.green],
-  "RWG March": const [Colors.red, Colors.white, Colors.green],
-  "RWG Wipe": const [Colors.red, Colors.white, Colors.green],
-  "RWG Flicker": const [Colors.red, Colors.white, Colors.green],
+  "RWB Paris": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureBlue],
+  "RWG Candy": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
+  "RWR Candy": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureRed],
+  "RWG Tree": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
+  "RWG March": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
+  "RWG Wipe": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
+  "RWG Flicker": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
   "Strobe": const [Color(0xFFFFFFFF), Color(0xFF787878), Color(0xFFFFFFFF)],
-  "Rainbow": const [Colors.red, Color(0xFFFFEB3B), Colors.blue],
-  "CGA": const [Color(0xFF00FFFF), Color(0xFFFF00FF), Colors.yellow],
+  "Rainbow": const [AppColors.pureRed, Color(0xFFFFEB3B), AppColors.pureBlue],
+  "CGA": const [Color(0xFF00FFFF), Color(0xFFFF00FF), AppColors.pureYellow],
 };

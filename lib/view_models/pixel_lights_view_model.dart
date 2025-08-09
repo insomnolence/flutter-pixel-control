@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pixel_lights/models/packet.dart';
+import 'package:pixel_lights/core/constants/app_colors.dart';
 import 'package:pixel_lights/models/patterns.dart' as pixel_patterns;
 import 'package:pixel_lights/services/bluetooth_services.dart';
 
@@ -16,9 +17,9 @@ class PixelLightsViewModel extends ChangeNotifier {
   pixel_patterns.Steps packetToSend = pixel_patterns.Steps();
 
   // Set up the values being tracked across the fragments.
-  Color color1 = Colors.red;
-  Color color2 = Colors.white;
-  Color color3 = Colors.green;
+  Color color1 = AppColors.pureRed;
+  Color color2 = AppColors.pureWhite;
+  Color color3 = AppColors.pureGreen;
 
   Pattern patternValue = Pattern.MiniTwinkle;
 
@@ -32,6 +33,11 @@ class PixelLightsViewModel extends ChangeNotifier {
     : _bluetoothService = bluetoothService ?? PixelBluetoothService();
 
   IBluetoothService get bluetoothService => _bluetoothService;
+
+  // Helper method to convert Flutter ARGB color to ESP32 RGB format
+  static int colorToRGB(int flutterColorValue) {
+    return flutterColorValue & 0x00FFFFFF; // Strip alpha channel
+  }
 
   // --- Bluetooth ---
   BluetoothDevice? _bluetoothDevice;
@@ -178,9 +184,9 @@ class PixelLightsViewModel extends ChangeNotifier {
         intensityValue,
         rateValue,
         patternValue,
-        color1.value,
-        color2.value,
-        color3.value,
+        colorToRGB(color1.value),
+        colorToRGB(color2.value),
+        colorToRGB(color3.value),
         levelValue,
       );
 
@@ -194,9 +200,9 @@ class PixelLightsViewModel extends ChangeNotifier {
         rateValue,
         levelValue,
         patternValue,
-        color1.value,
-        color2.value,
-        color3.value,
+        colorToRGB(color1.value),
+        colorToRGB(color2.value),
+        colorToRGB(color3.value),
       );
     }
 

@@ -54,31 +54,31 @@ class Packet {
   }
 
   Uint8List createBytes() {
-    // Create a ByteBuffer (equivalent) with the specified size and endianness.
-    final buffer = BytesBuilder();
-
-    // Add the command byte.
-    buffer.addByte(command.code);
-
-    // Add the brightness byte.
-    buffer.addByte(brightness);
-
-    // Add the speed byte.
-    buffer.addByte(speed);
-
-    // Add the pattern code byte.
-    buffer.addByte(pattern.code);
-
-    // Add the color int to the buffer.
-    for (int a in color) {
-      buffer.add(Int32List.fromList([a]).buffer.asUint8List());
+    // ESP32 expects exactly 19 bytes: 4 bytes header + 12 bytes colors + 3 bytes levels
+    final buffer = Uint8List(19);
+    
+    // Header (4 bytes)
+    buffer[0] = command.code;
+    buffer[1] = brightness;
+    buffer[2] = speed;
+    buffer[3] = pattern.code;
+    
+    // Colors (12 bytes: 3 × uint32_t in little endian)
+    int offset = 4;
+    for (int i = 0; i < 3; i++) {
+      final colorValue = color[i];
+      buffer[offset] = colorValue & 0xFF;           // Byte 0 (LSB)
+      buffer[offset + 1] = (colorValue >> 8) & 0xFF;  // Byte 1
+      buffer[offset + 2] = (colorValue >> 16) & 0xFF; // Byte 2
+      buffer[offset + 3] = (colorValue >> 24) & 0xFF; // Byte 3 (MSB)
+      offset += 4;
     }
-
-    // Add the level bytes.
-    for (int a in level) {
-      buffer.addByte(a);
-    }
-
-    return buffer.toBytes();
+    
+    // Levels (3 bytes)
+    buffer[16] = level[0];
+    buffer[17] = level[1];  
+    buffer[18] = level[2];
+    
+    return buffer;
   }
 }
