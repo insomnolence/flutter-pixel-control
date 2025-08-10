@@ -24,6 +24,8 @@ class _PresetsScreenState extends State<PresetsScreen> {
   }
 
   void usePattern(String patternName, PixelLightsViewModel viewModel) {
+    // Add haptic feedback for better UX
+    HapticFeedback.lightImpact();
     viewModel.usePattern(patternName);
   }
 
@@ -61,12 +63,12 @@ class _PresetsScreenState extends State<PresetsScreen> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
-                              crossAxisSpacing: 40.0,
-                              mainAxisSpacing: 40.0,
-                              childAspectRatio: 1.0, // Make the buttons square
+                              crossAxisSpacing: 20.0,
+                              mainAxisSpacing: 20.0,
+                              childAspectRatio: 1.0,
                             ),
                         itemBuilder: (context, index) {
-                          final patternName = patterns.keys.elementAt(index);
+                          final patternName = viewModel.orderedPatterns[index];
                           final List<Color> gradientColors =
                               patternGradients[patternName] ??
                               [Colors.grey, Colors.black];
@@ -79,9 +81,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
                               usePattern(patternName, viewModel);
                             },
                             gradientColors: gradientColors,
+                            viewModel: viewModel,
                           );
                         },
-                        itemCount: patterns.length,
+                        itemCount: viewModel.orderedPatterns.length,
                       ),
             ),
           ),
@@ -92,11 +95,12 @@ class _PresetsScreenState extends State<PresetsScreen> {
 }
 
 // Button Widget:
-class PresetButton extends StatelessWidget {
+class PresetButton extends StatefulWidget {
   final String patternName;
   final String? imagePath;
   final VoidCallback onPressed;
   final List<Color> gradientColors;
+  final PixelLightsViewModel viewModel;
 
   const PresetButton({
     super.key,
@@ -104,58 +108,69 @@ class PresetButton extends StatelessWidget {
     required this.imagePath,
     required this.onPressed,
     required this.gradientColors,
+    required this.viewModel,
   });
 
   @override
+  State<PresetButton> createState() => _PresetButtonState();
+}
+
+class _PresetButtonState extends State<PresetButton> {
+
+  @override
   Widget build(BuildContext context) {
+    final isActive = widget.viewModel.isPatternActive(widget.patternName);
+    
+    // Keep original gradient colors - no state-based color changes
+    
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(16.0),
       child: Ink(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: gradientColors,
+            colors: widget.gradientColors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16.0),
+          border: isActive 
+              ? Border.all(color: Colors.white, width: 3.0)
+              : Border.all(color: Colors.transparent, width: 3.0),
         ),
         child: InkWell(
-          onTap: onPressed,
+          onTap: widget.onPressed,
           borderRadius: BorderRadius.circular(16.0),
           child: Padding(
-            padding: const EdgeInsets.all(10.0), // Increased padding
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: 20, // Set to 60 for a square
-                maxWidth: 50,
-                minHeight: 20, // Set to 60 for a square
-                maxHeight: 50, //increased size.
-              ),
+            padding: const EdgeInsets.all(10.0),
+            child: SizedBox(
+              width: 80,
+              height: 80,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (imagePath != null)
+                  if (widget.imagePath != null)
                     Padding(
-                      padding: const EdgeInsets.all(4.0), // Increased padding
+                      padding: const EdgeInsets.all(4.0),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
                         child: SizedBox(
-                          width: 40, // Set to 40 for a square
-                          height: 40, // Set to 40 for a square
-                          child: Image.asset(imagePath!, fit: BoxFit.contain),
+                          width: 40,
+                          height: 40,
+                          child: Image.asset(widget.imagePath!, 
+                              fit: BoxFit.contain),
                         ),
                       ),
                     ),
                   const SizedBox(height: 2.0),
                   Text(
-                    patternName,
+                    widget.patternName,
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 16, // Increased font size
+                      fontSize: 16,
                     ),
                   ),
                 ],

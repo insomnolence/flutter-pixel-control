@@ -37,8 +37,9 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
+  late PageController _pageController;
 
   static List<Widget> _widgetOptions() => <Widget>[
     const PresetsScreen(),
@@ -46,61 +47,99 @@ class _MainScreenState extends State<MainScreen> {
     const BackgroundMesh(child: BluetoothScreen()),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _onPageChanged(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  Widget _buildConnectionStatus(PixelLightsViewModel viewModel) {
+    final isConnected = viewModel.bluetoothDevice != null && viewModel.txCharacteristic != null;
+    
+    return Container(
+      margin: const EdgeInsets.only(right: 8.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
+            color: isConnected ? Colors.green : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isConnected ? 'Connected' : 'Disconnected',
+            style: TextStyle(
+              color: isConnected ? Colors.green : Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PixelLightsViewModel>(
-      // Consumer here
       builder: (context, viewModel, child) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Pixel Lights')),
-          drawer: Drawer(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: <Widget>[
-                const DrawerHeader(
-                  decoration: BoxDecoration(color: Colors.blue),
-                  child: Text(
-                    'Pixel Lights',
-                    style: TextStyle(color: Colors.white, fontSize: 24),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.settings_input_component),
-                  title: const Text('Presets'),
-                  selected: _selectedIndex == 0,
-                  onTap: () {
-                    _onItemTapped(0);
-                    Navigator.pop(context); // Close the drawer
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.palette),
-                  title: const Text('Manual Control'),
-                  selected: _selectedIndex == 1,
-                  onTap: () {
-                    _onItemTapped(1);
-                    Navigator.pop(context); // Close the drawer
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.bluetooth),
-                  title: const Text('Bluetooth'),
-                  selected: _selectedIndex == 2,
-                  onTap: () {
-                    _onItemTapped(2);
-                    Navigator.pop(context); // Close the drawer
-                  },
-                ),
-              ],
-            ),
+          appBar: AppBar(
+            title: const Text('Pixel Lights'),
+            actions: [
+              _buildConnectionStatus(viewModel),
+            ],
           ),
-          body: Center(child: _widgetOptions().elementAt(_selectedIndex)),
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: _widgetOptions(),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_input_component),
+                label: 'Presets',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.palette),
+                label: 'Manual',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bluetooth),
+                label: 'Bluetooth',
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: Colors.blue,
+            unselectedItemColor: Colors.grey,
+          ),
         );
       },
     );

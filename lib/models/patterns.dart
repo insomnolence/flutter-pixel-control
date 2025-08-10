@@ -555,8 +555,8 @@ final Map<String, List<Color>> patternGradients = {
   "RWR Subtle": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureRed],
   "Blue Smooth": const [
     AppColors.pureBlue,
-    Color.fromARGB(255, 167, 181, 255),
-    Color.from(alpha: 255, red: 218, green: 218, blue: 255),
+    AppColors.pureWhite,  // White in the middle
+    Color(0xFF80C0FF),    // Light blue
   ],
   "RWB Paris": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureBlue],
   "RWG Candy": const [AppColors.pureRed, AppColors.pureWhite, AppColors.pureGreen],
