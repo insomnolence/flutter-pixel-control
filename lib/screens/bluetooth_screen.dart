@@ -215,7 +215,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     }
   }
 
-  /// Show tabbed analytics modal
+  /// Show tabbed analytics modal with card-consistent styling
   void _showAnalytics(BuildContext context, PixelLightsViewModel viewModel) {
     showModalBottomSheet(
       context: context,
@@ -225,29 +225,50 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         initialChildSize: 0.7,
         maxChildSize: 0.9,
         minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.black87,
+        builder: (context, scrollController) => Card(
+          elevation: 8,
+          margin: const EdgeInsets.only(top: 50),
+          color: Colors.black.withOpacity(0.9),
+          shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            side: BorderSide(color: Colors.white24, width: 1),
           ),
           child: DefaultTabController(
             length: 3,
             child: Column(
               children: [
-                // Header with close button
-                Padding(
-                  padding: const EdgeInsets.all(16),
+                // Header with card-consistent styling
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    ),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Connection Analytics",
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.analytics,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "CONNECTION ANALYTICS",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: Icon(Icons.close, color: Colors.white.withOpacity(0.7)),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -616,103 +637,130 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   Widget build(BuildContext context) {
     return Consumer<PixelLightsViewModel>(
       builder: (context, viewModel, child) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text("Device Connection"),
-            backgroundColor: const Color(0xFF121212),
-            elevation: 4.0,
-            titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
-            iconTheme: const IconThemeData(color: Colors.white),
-            actions: [
-              // Analytics button
-              IconButton(
-                icon: const Icon(Icons.analytics),
-                onPressed: () => _showAnalytics(context, viewModel),
-                tooltip: "View Analytics",
+        return BackgroundMesh(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildMainCard(viewModel),
               ),
-              // Auto-connect button
-              IconButton(
-                icon: const Icon(Icons.auto_fix_high),
-                onPressed: () => _startAutoConnect(viewModel),
-                tooltip: "Auto Connect",
-              ),
-            ],
-          ),
-          body: BackgroundMesh(
-            child: Column(
-              children: [
-                // Enhanced search bar
-                _buildEnhancedSearchBar(),
-                
-                // Professional device list
-                Expanded(
-                  child: BleDeviceList(
-                    devices: _getFilteredResults(),
-                    connectedDevice: viewModel.bluetoothDevice,
-                    connectionState: viewModel.connectionState,
-                    onDeviceSelected: (device) => _connectToDevice(device, viewModel),
-                    onRefresh: () => _startBluetoothScan(viewModel),
-                    onAutoConnect: () => _startAutoConnect(viewModel),
-                    isScanning: _isScanning,
-                  ),
-                ),
-                
-                // Enhanced control panel (simplified - no duplicate buttons)
-                _buildControlPanel(viewModel),
-              ],
             ),
+            floatingActionButton: _buildSmartFAB(viewModel),
+            floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           ),
-          floatingActionButton: _buildSmartFAB(viewModel),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
       },
     );
   }
 
-  /// Enhanced search bar with professional styling
+  /// Main card container following Manual/Presets screen pattern
+  Widget _buildMainCard(PixelLightsViewModel viewModel) {
+    return Card(
+      elevation: 8,
+      margin: EdgeInsets.zero,
+      color: Colors.black.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildCardHeader(viewModel),
+            const SizedBox(height: 20),
+            _buildEnhancedSearchBar(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: BleDeviceList(
+                devices: _getFilteredResults(),
+                connectedDevice: viewModel.bluetoothDevice,
+                connectionState: viewModel.connectionState,
+                onDeviceSelected: (device) => _connectToDevice(device, viewModel),
+                onRefresh: () => _startBluetoothScan(viewModel),
+                onAutoConnect: () => _startAutoConnect(viewModel),
+                isScanning: _isScanning,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Card header with integrated actions (replaces AppBar)
+  Widget _buildCardHeader(PixelLightsViewModel viewModel) {
+    return Row(
+      children: [
+        Icon(
+          Icons.bluetooth,
+          color: Colors.white.withOpacity(0.9),
+          size: 24,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'BLUETOOTH CONNECTION',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const Spacer(),
+        IconButton(
+          icon: Icon(Icons.analytics, color: Colors.white.withOpacity(0.7)),
+          onPressed: () => _showAnalytics(context, viewModel),
+          tooltip: "View Analytics",
+        ),
+        IconButton(
+          icon: Icon(Icons.auto_fix_high, color: Colors.white.withOpacity(0.7)),
+          onPressed: () => _startAutoConnect(viewModel),
+          tooltip: "Auto Connect",
+        ),
+      ],
+    );
+  }
+
+  /// Enhanced search bar integrated within card styling
   Widget _buildEnhancedSearchBar() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
       child: TextField(
         controller: _searchController,
         style: const TextStyle(color: Colors.white),
         cursorColor: Colors.white,
         decoration: InputDecoration(
           labelText: 'Search devices...',
-          labelStyle: const TextStyle(color: Colors.white70),
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
           hintText: 'ESP32, Pixel, LED...',
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7)),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.white70),
+                  icon: Icon(Icons.clear, color: Colors.white.withOpacity(0.7)),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
                   },
                 )
               : null,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white54),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blue, width: 2),
-          ),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.1),
         ),
       ),
     );
   }
 
-  /// Control panel simplified - clean spacing for FloatingActionButton
-  Widget _buildControlPanel(PixelLightsViewModel viewModel) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 80), // Space for FloatingActionButton
-    );
-  }
 
 
   /// Smart floating action button that adapts to connection state
