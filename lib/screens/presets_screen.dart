@@ -53,42 +53,84 @@ class _PresetsScreenState extends State<PresetsScreen> {
     return Consumer<PixelLightsViewModel>(
       builder: (context, viewModel, child) {
         return BackgroundMesh(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: viewModel.orderedPatterns.isEmpty
-                      ? const SizedBox()
-                      : GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 20.0,
-                              mainAxisSpacing: 20.0,
-                              childAspectRatio: 1.0,
-                            ),
-                        itemBuilder: (context, index) {
-                          final patternName = viewModel.orderedPatterns[index];
-                          final List<Color> gradientColors =
-                              patternGradients[patternName] ??
-                              [Colors.grey, Colors.black];
-                          final presetImage = presetImages[patternName];
-
-                          return PresetButton(
-                            patternName: patternName,
-                            imagePath: presetImage,
-                            onPressed: () {
-                              usePattern(patternName, viewModel);
-                            },
-                            gradientColors: gradientColors,
-                            viewModel: viewModel,
-                          );
-                        },
-                        itemCount: viewModel.orderedPatterns.length,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: viewModel.orderedPatterns.isEmpty
+                ? const SizedBox()
+                : Card(
+                    elevation: 8,
+                    margin: EdgeInsets.zero,
+                    color: Colors.black.withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 24),
+                          Expanded(child: _buildPresetsGrid(viewModel)),
+                        ],
                       ),
-            ),
+                    ),
+                  ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Icon(
+          Icons.auto_awesome,
+          color: Colors.white.withOpacity(0.9),
+          size: 24,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'PRESETS',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPresetsGrid(PixelLightsViewModel viewModel) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 16.0,
+        mainAxisSpacing: 16.0,
+        childAspectRatio: 1.0,
+      ),
+      itemBuilder: (context, index) {
+        final patternName = viewModel.orderedPatterns[index];
+        final List<Color> gradientColors =
+            patternGradients[patternName] ??
+            [Colors.grey, Colors.black];
+        final presetImage = presetImages[patternName];
+
+        return PresetButton(
+          patternName: patternName,
+          imagePath: presetImage,
+          onPressed: () {
+            usePattern(patternName, viewModel);
+          },
+          gradientColors: gradientColors,
+          viewModel: viewModel,
+        );
+      },
+      itemCount: viewModel.orderedPatterns.length,
     );
   }
 }
