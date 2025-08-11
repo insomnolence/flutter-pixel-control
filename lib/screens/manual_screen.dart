@@ -6,14 +6,15 @@ import 'package:pixel_lights/models/packet.dart';
 import "package:pixel_lights/models/color_wheel.dart";
 
 class ManualScreen extends StatefulWidget {
-  const ManualScreen({super.key});
+  final GlobalKey? colorPickerKey;
+  
+  const ManualScreen({super.key, this.colorPickerKey});
 
   @override
   State<ManualScreen> createState() => _ManualScreenState();
 }
 
 class _ManualScreenState extends State<ManualScreen> {
-  String? selectedPattern;
   bool _isSliderChanging = false;
 
   // Helper function to convert a percentage (0-100) to a value in the 0-255 range
@@ -36,73 +37,24 @@ class _ManualScreenState extends State<ManualScreen> {
     return Consumer<PixelLightsViewModel>(
       builder: (context, viewModel, child) {
         return BackgroundMesh(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 600;
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
                     children: [
-                      Flexible(flex: 2, child: _buildColorColumn(viewModel)),
-                      const SizedBox(width: 16),
                       Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildSliderSection(
-                              "Intensity",
-                              0,
-                              100,
-                              _valueToPercentage(viewModel.intensityValue),
-                              (percentage) => setState(() {
-                                viewModel.intensityValue = _percentageToValue(
-                                  percentage,
-                                );
-                              }),
-                              () => viewModel.processPacketInformation(
-                                controlPacket: true,
-                              ), // onSliderEnd
-                            ),
-                            _buildSliderSection(
-                              "Rate",
-                              0,
-                              100,
-                              _valueToPercentage(viewModel.rateValue),
-                              (percentage) => setState(() {
-                                viewModel.rateValue = _percentageToValue(
-                                  percentage,
-                                );
-                              }),
-                              () => viewModel.processPacketInformation(
-                                controlPacket: true,
-                              ), // onSliderEnd
-                            ),
-                            _buildSliderSection(
-                              "Level",
-                              0,
-                              100,
-                              _valueToPercentage(viewModel.levelValue),
-                              (percentage) => setState(() {
-                                viewModel.levelValue = _percentageToValue(
-                                  percentage,
-                                );
-                              }),
-                              () => viewModel.processPacketInformation(
-                                controlPacket: true,
-                              ), // onSliderEnd
-                            ),
-                            const SizedBox(height: 16),
-                            _buildPatternDropdown(viewModel),
-                          ],
-                        ),
+                        child: isWide
+                            ? _buildWideLayout(viewModel)
+                            : _buildNarrowLayout(viewModel),
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         );
@@ -110,165 +62,513 @@ class _ManualScreenState extends State<ManualScreen> {
     );
   }
 
-  Widget _buildColorColumn(PixelLightsViewModel viewModel) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildWideLayout(PixelLightsViewModel viewModel) {
+    return Row(
       children: [
-        _buildColorSection(
-          "Color 1",
-          viewModel.color1,
-          (color) => setState(() {
-            viewModel.color1 = color;
-          }),
-          (color, shouldProcessPacket) {
-            // onColorChangeEnd
-            viewModel.color1 = color;
-            if (shouldProcessPacket) {
-              viewModel.processPacketInformation(controlPacket: false);
-            }
-          },
-        ),
-        const SizedBox(height: 40),
-        _buildColorSection(
-          "Color 2",
-          viewModel.color2,
-          (color) => setState(() {
-            viewModel.color2 = color;
-          }),
-          (color, shouldProcessPacket) {
-            // onColorChangeEnd
-            viewModel.color2 = color;
-            if (shouldProcessPacket) {
-              viewModel.processPacketInformation(controlPacket: false);
-            }
-          },
-        ),
-        const SizedBox(height: 40),
-        _buildColorSection(
-          "Color 3",
-          viewModel.color3,
-          (color) => setState(() {
-            viewModel.color3 = color;
-          }),
-          (color, shouldProcessPacket) {
-            // onColorChangeEnd
-            viewModel.color3 = color;
-            if (shouldProcessPacket) {
-              viewModel.processPacketInformation(controlPacket: false);
-            }
-          },
-        ),
+        Expanded(child: _buildColorsCard(viewModel)),
+        const SizedBox(width: 16),
+        Expanded(child: _buildControlsCard(viewModel)),
       ],
     );
   }
 
-  Widget _buildColorSection(
-    String title,
-    Color currentColor,
-    Function(Color) onColorChanged,
-    Function(Color, bool) onColorChangeEnd, // callback with boolean
-  ) {
+  Widget _buildNarrowLayout(PixelLightsViewModel viewModel) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildColorsCard(viewModel),
+          const SizedBox(height: 16),
+          _buildControlsCard(viewModel),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorsCard(PixelLightsViewModel viewModel) {
+    return Card(
+      elevation: 8,
+      margin: EdgeInsets.zero,
+      color: Colors.black.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.palette,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'COLORS',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildColorSwatchRow(viewModel),
+            const SizedBox(height: 20),
+            _buildInlineColorPicker(viewModel),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorSwatchRow(PixelLightsViewModel viewModel) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildColorSwatch('Color 1', viewModel.color1, 0),
+        _buildColorSwatch('Color 2', viewModel.color2, 1),
+        _buildColorSwatch('Color 3', viewModel.color3, 2),
+      ],
+    );
+  }
+
+  int _selectedColorIndex = 0;
+
+  Widget _buildColorSwatch(String label, Color color, int index) {
+    final isSelected = _selectedColorIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedColorIndex = index;
+        });
+      },
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected 
+                    ? Colors.white 
+                    : Colors.white.withOpacity(0.3),
+                width: isSelected ? 3 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      )
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected 
+                  ? Colors.white 
+                  : Colors.white.withOpacity(0.7),
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineColorPicker(PixelLightsViewModel viewModel) {
+    Color currentColor;
+    Function(Color) onColorChanged;
+    Function(Color, bool) onColorChangeEnd;
+
+    switch (_selectedColorIndex) {
+      case 0:
+        currentColor = viewModel.color1;
+        onColorChanged = (color) => setState(() { viewModel.color1 = color; });
+        onColorChangeEnd = (color, shouldProcessPacket) {
+          viewModel.color1 = color;
+          if (shouldProcessPacket) {
+            viewModel.processPacketInformation(controlPacket: false);
+          }
+        };
+        break;
+      case 1:
+        currentColor = viewModel.color2;
+        onColorChanged = (color) => setState(() { viewModel.color2 = color; });
+        onColorChangeEnd = (color, shouldProcessPacket) {
+          viewModel.color2 = color;
+          if (shouldProcessPacket) {
+            viewModel.processPacketInformation(controlPacket: false);
+          }
+        };
+        break;
+      case 2:
+      default:
+        currentColor = viewModel.color3;
+        onColorChanged = (color) => setState(() { viewModel.color3 = color; });
+        onColorChangeEnd = (color, shouldProcessPacket) {
+          viewModel.color3 = color;
+          if (shouldProcessPacket) {
+            viewModel.processPacketInformation(controlPacket: false);
+          }
+        };
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Adjust Selected Color',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          RepaintBoundary(
+            child: Container(
+              key: widget.colorPickerKey, // GlobalKey for bounds detection
+              child: CustomHuePicker(
+                color: currentColor,
+                onColorChanged: onColorChanged,
+                onColorChangeEnd: onColorChangeEnd,
+                width: 200,
+                textStyle: const TextStyle(fontSize: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildControlsCard(PixelLightsViewModel viewModel) {
+    return Card(
+      elevation: 8,
+      margin: EdgeInsets.zero,
+      color: Colors.black.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.tune,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'PATTERN & CONTROLS',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildEnhancedPatternDropdown(viewModel),
+            const SizedBox(height: 24),
+            _buildEnhancedSlider(
+              "Intensity",
+              Icons.brightness_7,
+              Colors.yellow,
+              _valueToPercentage(viewModel.intensityValue),
+              (percentage) => setState(() {
+                viewModel.intensityValue = _percentageToValue(percentage);
+              }),
+              () => viewModel.processPacketInformation(controlPacket: true),
+            ),
+            const SizedBox(height: 16),
+            _buildEnhancedSlider(
+              "Rate",
+              Icons.speed,
+              Colors.blue,
+              _valueToPercentage(viewModel.rateValue),
+              (percentage) => setState(() {
+                viewModel.rateValue = _percentageToValue(percentage);
+              }),
+              () => viewModel.processPacketInformation(controlPacket: true),
+            ),
+            const SizedBox(height: 16),
+            _buildEnhancedSlider(
+              "Level",
+              Icons.equalizer,
+              Colors.green,
+              _valueToPercentage(viewModel.levelValue),
+              (percentage) => setState(() {
+                viewModel.levelValue = _percentageToValue(percentage);
+              }),
+              () => viewModel.processPacketInformation(controlPacket: true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedPatternDropdown(PixelLightsViewModel viewModel) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white)),
+        Row(
+          children: [
+            Icon(
+              Icons.pattern,
+              color: Colors.white.withOpacity(0.7),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Pattern',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: CustomHuePicker(
-            color: currentColor,
-            onColorChanged: onColorChanged,
-            onColorChangeEnd: onColorChangeEnd, // Pass the callback
-            width: 120,
-            textStyle: const TextStyle(fontSize: 16, color: Colors.white),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<Pattern>(
+              value: viewModel.patternValue,
+              dropdownColor: Colors.black.withOpacity(0.95),
+              elevation: 12,
+              borderRadius: BorderRadius.circular(12),
+              onChanged: (Pattern? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    viewModel.patternValue = newValue;
+                  });
+                  viewModel.processPacketInformation(controlPacket: false);
+                  viewModel.usePattern(newValue.name);
+                }
+              },
+              items: Pattern.values.map<DropdownMenuItem<Pattern>>((Pattern value) {
+                return DropdownMenuItem<Pattern>(
+                  value: value,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        _getPatternIcon(value.name),
+                        const SizedBox(width: 12),
+                        Text(
+                          value.name,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+              selectedItemBuilder: (BuildContext context) {
+                return Pattern.values.map<Widget>((Pattern value) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        _getPatternIcon(value.name),
+                        const SizedBox(width: 12),
+                        Text(
+                          value.name,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList();
+              },
+              isExpanded: true,
+              icon: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 24,
+                ),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSliderSection(
+  Widget _getPatternIcon(String patternName) {
+    switch (patternName.toLowerCase()) {
+      case 'solid':
+        return Icon(Icons.circle, size: 18, color: Colors.amber.withOpacity(0.8));
+      case 'gradient':
+        return Icon(Icons.gradient, size: 18, color: Colors.purple.withOpacity(0.8));
+      case 'rainbow':
+        return Icon(Icons.color_lens, size: 18, color: Colors.red.withOpacity(0.8));
+      case 'strobe':
+        return Icon(Icons.flash_on, size: 18, color: Colors.yellow.withOpacity(0.8));
+      case 'march':
+        return Icon(Icons.trending_up, size: 18, color: Colors.blue.withOpacity(0.8));
+      case 'wipe':
+        return Icon(Icons.cleaning_services, size: 18, color: Colors.cyan.withOpacity(0.8));
+      case 'twinkle':
+      case 'minitwinkle':
+        return Icon(Icons.star, size: 18, color: Colors.pink.withOpacity(0.8));
+      case 'sparkle':
+      case 'minisparkle':
+        return Icon(Icons.auto_awesome, size: 18, color: Colors.orange.withOpacity(0.8));
+      case 'candycane':
+        return Icon(Icons.cake, size: 18, color: Colors.red.withOpacity(0.8));
+      case 'flash':
+        return Icon(Icons.flash_auto, size: 18, color: Colors.white.withOpacity(0.8));
+      case 'fixed':
+        return Icon(Icons.lock, size: 18, color: Colors.grey.withOpacity(0.8));
+      default:
+        return Icon(Icons.lightbulb_outline, size: 18, color: Colors.white.withOpacity(0.6));
+    }
+  }
+
+  Widget _buildEnhancedSlider(
     String title,
-    double min,
-    double max,
+    IconData icon,
+    Color accentColor,
     double percentage,
     Function(double) onPercentageChanged,
-    Function() onSliderEnd, // callback
+    Function() onSliderEnd,
   ) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white)),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Slider(
-                min: min,
-                max: max,
-                value: percentage,
-                onChanged: (newPercentage) {
-                  onPercentageChanged(newPercentage);
-                  if (!_isSliderChanging) {
-                    setState(() {
-                      _isSliderChanging = true;
-                    });
-                  }
-                },
-                onChangeEnd: (newPercentage) {
-                  onSliderEnd();
-                  setState(() {
-                    _isSliderChanging = false;
-                  });
-                },
-                activeColor: Colors.white.withOpacity(0.8),
-                inactiveColor: Colors.grey.withOpacity(0.5),
-              ),
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  color: accentColor.withOpacity(0.8),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 10.0),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: accentColor.withOpacity(0.4)),
+              ),
               child: Text(
                 '${percentage.round()}%',
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 6,
+            thumbShape: RoundSliderThumbShape(
+              enabledThumbRadius: 12,
+            ),
+            overlayShape: RoundSliderOverlayShape(
+              overlayRadius: 20,
+            ),
+            thumbColor: accentColor,
+            activeTrackColor: accentColor.withOpacity(0.8),
+            inactiveTrackColor: Colors.white.withOpacity(0.2),
+            overlayColor: accentColor.withOpacity(0.3),
+          ),
+          child: Slider(
+            min: 0,
+            max: 100,
+            value: percentage,
+            onChanged: (newPercentage) {
+              onPercentageChanged(newPercentage);
+              if (!_isSliderChanging) {
+                setState(() {
+                  _isSliderChanging = true;
+                });
+              }
+            },
+            onChangeEnd: (newPercentage) {
+              onSliderEnd();
+              setState(() {
+                _isSliderChanging = false;
+              });
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildPatternDropdown(PixelLightsViewModel viewModel) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.blue[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButton<Pattern>(
-        value: viewModel.patternValue,
-        dropdownColor: Colors.blue[200],
-        onChanged: (Pattern? newValue) {
-          if (newValue != null) {
-            setState(() {
-              viewModel.patternValue = newValue;
-            });
-
-            viewModel.processPacketInformation(controlPacket: false);
-            viewModel.usePattern(newValue.name);
-          }
-        },
-        items:
-            Pattern.values.map<DropdownMenuItem<Pattern>>((Pattern value) {
-              return DropdownMenuItem<Pattern>(
-                value: value,
-                child: Text(value.name),
-              );
-            }).toList(),
-        style: const TextStyle(color: Colors.black),
-        isExpanded: true,
-        underline: const SizedBox(),
-      ),
-    );
-  }
 }

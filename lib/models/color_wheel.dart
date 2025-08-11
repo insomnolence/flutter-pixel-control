@@ -1,5 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:math';
+
+// Custom pan gesture recognizer that wins against parent scroll widgets
+class _ColorWheelPanGestureRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    // Win the gesture arena immediately to prevent parent scroll widgets from interfering
+    resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    super.handleEvent(event);
+    // Process the event normally but ensure we own it
+  }
+}
 
 class CustomHuePicker extends StatefulWidget {
   final double width;
@@ -68,13 +85,16 @@ class _CustomHuePickerState extends State<CustomHuePicker> {
     double hue = ((rad + 90) % 360).clamp(0, 360);
 
     _currentHsvColor = _currentHsvColor.withHue(hue).withSaturation(dist);
+    final color = HSVColor.fromAHSV(1.0, hue, dist, 1.0).toColor();
 
     setState(() {
       // Update the indicator circle immediately
     });
 
+    // Call onColorChanged during dragging for real-time updates
+    widget.onColorChanged(color);
+
     if (isFinal) {
-      final color = HSVColor.fromAHSV(1.0, hue, dist, 1.0).toColor();
       widget.onColorChangeEnd(color, true); // Send the final color and true
     }
   }
@@ -89,35 +109,54 @@ class _CustomHuePickerState extends State<CustomHuePicker> {
           height: size,
           child: AspectRatio(
             aspectRatio: 1.0,
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                _updateColorFromOffset(
-                  details.localPosition,
-                  widget.width,
-                  false,
-                );
+            child: RawGestureDetector(
+              gestures: {
+                // Custom pan recognizer that blocks parent scrolling
+                _ColorWheelPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ColorWheelPanGestureRecognizer>(
+                  () => _ColorWheelPanGestureRecognizer(),
+                  (_ColorWheelPanGestureRecognizer instance) {
+                    instance
+                      ..onStart = (details) {
+                        _updateColorFromOffset(
+                          details.localPosition,
+                          widget.width,
+                          false,
+                        );
+                      }
+                      ..onUpdate = (details) {
+                        _updateColorFromOffset(
+                          details.localPosition,
+                          widget.width,
+                          false,
+                        );
+                      }
+                      ..onEnd = (details) {
+                        widget.onColorChangeEnd(_currentHsvColor.toColor(), true);
+                      };
+                  },
+                ),
+                TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                  () => TapGestureRecognizer(),
+                  (TapGestureRecognizer instance) {
+                    instance
+                      ..onTapDown = (details) {
+                        _updateColorFromOffset(
+                          details.localPosition,
+                          widget.width,
+                          false,
+                        );
+                      }
+                      ..onTapUp = (details) {
+                        _updateColorFromOffset(
+                          details.localPosition,
+                          widget.width,
+                          true,
+                        );
+                      };
+                  },
+                ),
               },
-              onTapDown: (details) {
-                _updateColorFromOffset(
-                  details.localPosition,
-                  widget.width,
-                  false,
-                );
-              },
-              onPanEnd: (details) {
-                _updateColorFromOffset(
-                  details.localPosition,
-                  widget.width,
-                  true,
-                );
-              },
-              onTapUp: (details) {
-                _updateColorFromOffset(
-                  details.localPosition,
-                  widget.width,
-                  true,
-                );
-              },
+              behavior: HitTestBehavior.opaque,
               child: CustomPaint(
                 painter: HUEColorWheelPainter(_currentHsvColor),
               ),

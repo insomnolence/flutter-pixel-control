@@ -7,6 +7,108 @@ import 'package:pixel_lights/services/bluetooth_services.dart';
 import 'package:pixel_lights/view_models/pixel_lights_view_model.dart';
 import 'package:provider/provider.dart';
 
+// Smart PageView that can disable scrolling for protected gesture zones
+class SmartGesturePageView extends StatefulWidget {
+  final List<Widget> children;
+  final PageController controller;
+  final Function(int)? onPageChanged;
+  final List<GlobalKey> protectedZoneKeys;
+  
+  const SmartGesturePageView({
+    super.key,
+    required this.children,
+    required this.controller,
+    this.onPageChanged,
+    this.protectedZoneKeys = const [],
+  });
+
+  @override
+  State<SmartGesturePageView> createState() => _SmartGesturePageViewState();
+}
+
+class _SmartGesturePageViewState extends State<SmartGesturePageView> {
+  final ValueNotifier<bool> _scrollEnabled = ValueNotifier<bool>(true);
+  bool _isCurrentlyInProtectedZone = false;
+  
+  bool _isPointInProtectedZone(Offset globalPoint) {
+    for (final key in widget.protectedZoneKeys) {
+      final RenderBox? renderBox = key.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final localPoint = renderBox.globalToLocal(globalPoint);
+        final size = renderBox.size;
+        
+        // Minimal padding - only protect the actual color wheel, not the whole card
+        const padding = 5.0;
+        if (localPoint.dx >= -padding && localPoint.dx <= size.width + padding &&
+            localPoint.dy >= -padding && localPoint.dy <= size.height + padding) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  void _updateScrollState(bool inProtectedZone) {
+    _isCurrentlyInProtectedZone = inProtectedZone;
+    _scrollEnabled.value = !inProtectedZone;
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (event) {
+        // Immediately check and disable on pointer down
+        final isInProtectedZone = _isPointInProtectedZone(event.position);
+        _updateScrollState(isInProtectedZone);
+      },
+      onPointerMove: (event) {
+        // Double-check during movement for quick gestures
+        if (!_isCurrentlyInProtectedZone) {
+          final isInProtectedZone = _isPointInProtectedZone(event.position);
+          if (isInProtectedZone) {
+            _updateScrollState(true);
+          }
+        }
+      },
+      onPointerUp: (event) {
+        // Re-enable scrolling when touch ends
+        _updateScrollState(false);
+      },
+      onPointerCancel: (event) {
+        // Re-enable scrolling if touch is cancelled
+        _updateScrollState(false);
+      },
+      child: GestureDetector(
+        // Add aggressive gesture blocking for protected zones
+        onPanStart: (details) {
+          final isInProtectedZone = _isPointInProtectedZone(details.globalPosition);
+          if (isInProtectedZone) {
+            _updateScrollState(true);
+          }
+        },
+        behavior: HitTestBehavior.translucent,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _scrollEnabled,
+          builder: (context, isEnabled, child) {
+            return PageView(
+              controller: widget.controller,
+              onPageChanged: widget.onPageChanged,
+              physics: isEnabled ? null : const NeverScrollableScrollPhysics(),
+              children: widget.children,
+            );
+          },
+        ),
+      ),
+    );
+  }
+  
+  @override
+  void dispose() {
+    _scrollEnabled.dispose();
+    super.dispose();
+  }
+}
+
 void main() {
   runApp(const PixelLightsApp()); // No more ProviderScope
 }
@@ -40,10 +142,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late PageController _pageController;
+  final GlobalKey _colorPickerKey = GlobalKey();
 
-  static List<Widget> _widgetOptions() => <Widget>[
+  List<Widget> _widgetOptions() => <Widget>[
     const PresetsScreen(),
-    const BackgroundMesh(child: ManualScreen()),
+    BackgroundMesh(child: ManualScreen(colorPickerKey: _colorPickerKey)),
     const BackgroundMesh(child: BluetoothScreen()),
   ];
 
@@ -116,9 +219,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               _buildConnectionStatus(viewModel),
             ],
           ),
-          body: PageView(
+          body: SmartGesturePageView(
             controller: _pageController,
             onPageChanged: _onPageChanged,
+            protectedZoneKeys: [_colorPickerKey],
             children: _widgetOptions(),
           ),
           bottomNavigationBar: BottomNavigationBar(
