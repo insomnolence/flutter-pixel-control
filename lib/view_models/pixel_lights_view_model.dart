@@ -5,6 +5,9 @@ import 'package:pixel_lights/models/packet.dart';
 import 'package:pixel_lights/core/constants/app_colors.dart';
 import 'package:pixel_lights/models/patterns.dart' as pixel_patterns;
 import 'package:pixel_lights/services/bluetooth_services.dart';
+import 'package:pixel_lights/models/ble_connection_state.dart';
+import 'package:pixel_lights/services/analytics_service.dart';
+import 'package:pixel_lights/models/connection_analytics.dart';
 
 enum PatternState {
   idle,
@@ -107,6 +110,12 @@ class PixelLightsViewModel extends ChangeNotifier {
   int levelValue = 128;
 
   final IBluetoothService _bluetoothService;
+  final AnalyticsService _analyticsService = AnalyticsService();
+  StreamSubscription<BleConnectionState>? _enhancedConnectionSubscription;
+  StreamSubscription<ConnectionAnalytics?>? _analyticsSubscription;
+  BleConnectionState _connectionState = BleConnectionState.idle();
+  ConnectionAnalytics? _currentAnalytics;
+  Timer? _analyticsDebounceTimer;
 
   PixelLightsViewModel({IBluetoothService? bluetoothService})
     : _bluetoothService = bluetoothService ?? PixelBluetoothService() {
@@ -116,6 +125,9 @@ class PixelLightsViewModel extends ChangeNotifier {
       state: PatternState.active,
       totalDurationSeconds: 0,
     );
+    
+    // Initialize analytics service
+    _initializeServices();
   }
 
   IBluetoothService get bluetoothService => _bluetoothService;
@@ -125,6 +137,20 @@ class PixelLightsViewModel extends ChangeNotifier {
   String? get activePatternName => _currentExecution?.patternName;
   PatternState get activePatternState => _currentExecution?.state ?? PatternState.idle;
   double get patternProgress => _currentExecution?.progress ?? 0.0;
+  
+  // Getters for enhanced connection state
+  BleConnectionState get connectionState => _connectionState;
+  ConnectionAnalytics? get currentAnalytics => _currentAnalytics;
+  AnalyticsService get analyticsService => _analyticsService;
+  
+  // Stream of current session metrics for real-time UI updates
+  Stream<ConnectionAnalytics?> get currentSessionMetrics => _analyticsService.currentSessionMetrics;
+  
+  // Check if connection is in progress
+  bool get isConnecting => _connectionState.isConnecting;
+  bool get isConnected => _connectionState.isConnected;
+  bool get hasConnectionError => _connectionState.hasError;
+  bool get isScanning => _connectionState.isScanning;
   
   // Get ordered pattern list
   List<String> get orderedPatterns => _patternOrder;
@@ -248,6 +274,101 @@ class PixelLightsViewModel extends ChangeNotifier {
   Future<void> disconnectDevice() async {
     if (_bluetoothDevice != null) {
       await _bluetoothService.disconnect(_bluetoothDevice!);
+      await _analyticsService.endSession(clearHealthData: true); // Clear health data on manual disconnect
+    }
+  }
+
+  /// Initialize analytics and connection state services
+  Future<void> _initializeServices() async {
+    await _analyticsService.initialize();
+    
+    // Listen to enhanced connection state changes
+    _enhancedConnectionSubscription = _bluetoothService.enhancedConnectionStateStream
+        .listen((state) {
+      _connectionState = state;
+      notifyListeners();
+      
+      // Handle device tracking and analytics based on connection state
+      if (state.phase == BleConnectionPhase.ready && state.device != null) {
+        // Set device and discover characteristic for enhanced connections
+        _bluetoothDevice = state.device;
+        _discoverTxCharacteristic(state.device!);
+        
+        // Start analytics session with ESP32 health data support
+        _analyticsService.startSession(
+          state.device!,
+          state.signalStrength ?? -70,
+          bluetoothService: _bluetoothService,
+        );
+      } else if (state.phase == BleConnectionPhase.disconnected ||
+                 state.phase == BleConnectionPhase.error) {
+        // Clear device tracking
+        _bluetoothDevice = null;
+        _txCharacteristic = null;
+        
+        // Immediate UI clear for better responsiveness
+        _currentAnalytics = null;
+        notifyListeners();
+        
+        // End analytics session (preserve health data for brief connection issues)
+        _analyticsService.endSession(clearHealthData: false);
+      }
+    });
+    
+    // Listen to analytics updates with debouncing for rapid connect/disconnect cycles
+    _analyticsSubscription = _analyticsService.currentSessionMetrics
+        .listen((analytics) {
+      _analyticsDebounceTimer?.cancel();
+      _analyticsDebounceTimer = Timer(Duration(milliseconds: 100), () {
+        _currentAnalytics = analytics; // Can now be null
+        notifyListeners();
+        debugPrint("PixelLightsViewModel: Analytics updated - ${analytics != null ? 'Data' : 'Null (cleared)'}");
+      });
+    });
+  }
+
+  /// Auto-connect to a device with intelligent selection
+  Future<bool> autoConnect({
+    String? preferredDeviceName,
+    Duration scanTimeout = const Duration(seconds: 10),
+    Duration connectionTimeout = const Duration(seconds: 15),
+  }) async {
+    try {
+      final success = await _bluetoothService.autoConnect(
+        preferredDeviceName: preferredDeviceName,
+        scanTimeout: scanTimeout,
+        connectionTimeout: connectionTimeout,
+      );
+      
+      if (success) {
+        debugPrint("Auto-connect successful!");
+        return true;
+      } else {
+        debugPrint("Auto-connect failed: ${_connectionState.message}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Auto-connect error: $e");
+      _analyticsService.recordError("Auto-connect failed: $e");
+      return false;
+    }
+  }
+
+  /// Retry the last connection attempt
+  Future<bool> retryConnection() async {
+    try {
+      final success = await _bluetoothService.retryConnection();
+      if (success) {
+        debugPrint("Connection retry successful!");
+      } else {
+        debugPrint("Connection retry failed");
+        _analyticsService.recordReconnectionAttempt();
+      }
+      return success;
+    } catch (e) {
+      debugPrint("Retry connection error: $e");
+      _analyticsService.recordError("Retry failed: $e");
+      return false;
     }
   }
 
@@ -393,8 +514,16 @@ class PixelLightsViewModel extends ChangeNotifier {
         "UsePattern: Pattern step duration: ${i.duration}, command: ${packet.command}, speed: ${packet.speed} , brightness: ${packet.brightness}, pattern: ${packet.pattern}, level: ${packet.level}, color: ${packet.color}",
       );
 
-      await _bluetoothService.writeCharacteristic(_txCharacteristic, packet);
-      debugPrint("UsePattern: writing packet");
+      try {
+        await _bluetoothService.writeCharacteristic(_txCharacteristic, packet);
+        debugPrint("UsePattern: writing packet");
+        _analyticsService.recordPacketSent();
+      } catch (e) {
+        debugPrint("UsePattern: packet write failed: $e");
+        _analyticsService.recordPacketDropped();
+        _analyticsService.recordError("Packet write failed: $e");
+        rethrow;
+      }
       
       // Set pattern to active after first packet is sent successfully
       if (patternName != null && _currentExecution?.state == PatternState.loading) {
@@ -471,13 +600,17 @@ class PixelLightsViewModel extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _clearTimers();
+    _analyticsDebounceTimer?.cancel();
     packetStream?.cancel();
     if (completer != null && !completer!.isCompleted) {
       completer!.complete();
     }
     completer = null;
     _connectionStateSubscription?.cancel();
-    _bluetoothService.dispose(); // Call the dispose on the bluetoothService
+    _enhancedConnectionSubscription?.cancel();
+    _analyticsSubscription?.cancel();
+    _analyticsService.dispose();
+    _bluetoothService.dispose();
     super.dispose();
   }
 }

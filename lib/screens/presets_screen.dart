@@ -56,8 +56,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
-              child:
-                  patterns.isEmpty
+              child: viewModel.orderedPatterns.isEmpty
                       ? const SizedBox()
                       : GridView.builder(
                         gridDelegate:
@@ -120,9 +119,8 @@ class _PresetButtonState extends State<PresetButton> {
   @override
   Widget build(BuildContext context) {
     final isActive = widget.viewModel.isPatternActive(widget.patternName);
-    
-    // Keep original gradient colors - no state-based color changes
-    
+    final isBluetoothConnected = widget.viewModel.bluetoothDevice != null; // Explicitly declare here
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(16.0),
@@ -134,46 +132,59 @@ class _PresetButtonState extends State<PresetButton> {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16.0),
-          border: isActive 
+          border: isActive
               ? Border.all(color: Colors.white, width: 3.0)
               : Border.all(color: Colors.transparent, width: 3.0),
         ),
-        child: InkWell(
-          onTap: widget.onPressed,
-          borderRadius: BorderRadius.circular(16.0),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: SizedBox(
-              width: 80,
-              height: 80,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (widget.imagePath != null)
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Image.asset(widget.imagePath!, 
-                              fit: BoxFit.contain),
+        child: Opacity( // Apply opacity for visual disabled state
+          opacity: isBluetoothConnected ? 1.0 : 0.5,
+          child: InkWell(
+            onTap: isBluetoothConnected // Only enable tap if connected
+                ? widget.onPressed
+                : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Bluetooth not connected. Please connect to a device first."),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+            borderRadius: BorderRadius.circular(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (widget.imagePath != null)
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Image.asset(widget.imagePath!,
+                                fit: BoxFit.contain),
+                          ),
                         ),
                       ),
+                    const SizedBox(height: 2.0),
+                    Text(
+                      widget.patternName,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    widget.patternName,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

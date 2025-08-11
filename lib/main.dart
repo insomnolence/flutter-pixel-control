@@ -110,6 +110,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Pixel Lights'),
+            backgroundColor: const Color(0xFF121212),
+            titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
             actions: [
               _buildConnectionStatus(viewModel),
             ],
@@ -137,8 +139,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
+            backgroundColor: const Color(0xFF121212), // Dark gray background
             selectedItemColor: Colors.blue,
-            unselectedItemColor: Colors.grey,
+            unselectedItemColor: Colors.grey[600],
           ),
         );
       },
