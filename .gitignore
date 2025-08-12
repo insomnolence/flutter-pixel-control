@@ -1,45 +1,58 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter/Dart specific
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
-.pub/
-/build/
+build/
 
-# Symbolication related
-app.*.symbols
+# IDE specific
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+nbproject/
+.nb-gradle/
 
-# Obfuscation related
-app.*.map.json
+# Platform specific
+## Android
+/android/app/src/main/assets/flutter_assets/
+/android/app/src/main/res/drawable-hdpi/
+/android/app/src/main/res/drawable-mdpi/
+/android/app/src/main/res/drawable-xhdpi/
+/android/app/src/main/res/drawable-xxhdpi/
+/android/app/src/main/res/drawable-xxxhdpi/
+/android/app/src/main/res/mipmap-hdpi/
+/android/app/src/main/res/mipmap-mdpi/
+/android/app/src/main/res/mipmap-xhdpi/
+/android/app/src/main/res/mipmap-xxhdpi/
+/android/app/src/main/res/mipmap-xxxhdpi/
+/android/gradle.properties
+/android/local.properties
+/android/.gradle/
+/android/app/build/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+## iOS
+/ios/Pods/
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/ephemeral/
+/ios/Flutter/flutter_assets/
+/ios/.symlinks/
+/ios/Runner/GeneratedPluginRegistrant.*
+/ios/Runner.xcworkspace/
+/ios/Runner.xcodeproj/project.xcworkspace/
+/ios/Runner.xcodeproj/xcuserdata/
+
+# Other platforms
+/windows/flutter/ephemeral/
+/windows/runner/Debug/
+/windows/runner/Profile/
+/windows/runner/Release/
+/linux/flutter/ephemeral/
+/macos/Flutter/ephemeral/
+
+# Common
+*.log
+*.DS_Store
