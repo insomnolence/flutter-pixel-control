@@ -51,8 +51,8 @@ flutter doctor
 ### 2. Clone the Repository
 
 ```sh
-git clone <your-repository-url>
-cd pixel_lights
+git clone https://github.com/insomnolence/flutter-pixel-control.git
+cd flutter-pixel-control
 ```
 
 ### 3. Install Dependencies
