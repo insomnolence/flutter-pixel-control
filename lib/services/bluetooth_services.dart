@@ -687,7 +687,6 @@ class PixelBluetoothService implements IBluetoothService {
     try {
       _connectionStateSubscription = device.connectionState
           .distinct() // Avoid duplicate events
-          .timeout(Duration(minutes: 5)) // Detect stalled streams - much more conservative
           .listen(
             (state) => _handleConnectionStateChange(state, device),
             onError: (error) => _handleConnectionStreamError(error, device),
@@ -749,18 +748,19 @@ class PixelBluetoothService implements IBluetoothService {
   
   /// Parse ESP32 NetworkHealth data (7-byte packed struct)
   void _parseHealthData(List<int> data) {
-    if (data.length != 7) {
-      debugPrint("PixelBluetoothService: Invalid health data length: ${data.length} (expected 7)");
+    if (data.length != 8) {
+      debugPrint("PixelBluetoothService: Invalid health data length: ${data.length} (expected 8)");
       return;
     }
     
-    // Parse NetworkHealth struct (7 bytes total):
+    // Parse NetworkHealth struct (8 bytes total):
     // byte 0: overall_score (uint8_t - 1 byte)
     // byte 1: active_neighbors (uint8_t - 1 byte) 
     // byte 2: packet_success_rate (uint8_t - 1 byte)
     // byte 3: avg_signal_strength (int8_t - 1 byte)
     // byte 4-5: uptime_hours (uint16_t - 2 bytes, little endian)
     // byte 6: mesh_role (uint8_t - 1 byte)
+    // byte 7: total_nodes (uint8_t - 1 byte)
     
     final healthData = {
       'overall_score': data[0],
@@ -769,6 +769,7 @@ class PixelBluetoothService implements IBluetoothService {
       'avg_signal_strength': data[3] > 127 ? data[3] - 256 : data[3], // Convert to signed int8
       'uptime_hours': data[4] | (data[5] << 8), // Little endian uint16
       'mesh_role': data[6], // 0=client, 1=root_ble, 2=root_autonomous
+      'total_nodes': data[7],
       'timestamp': DateTime.now(),
     };
     
@@ -784,6 +785,7 @@ class PixelBluetoothService implements IBluetoothService {
     debugPrint("PixelBluetoothService: ESP32 Health Update - "
                "Score: ${healthData['overall_score']}%, "
                "Neighbors: ${healthData['active_neighbors']}, "
+               "Total Nodes: ${healthData['total_nodes']}, "
                "Success: ${healthData['packet_success_rate']}%, "
                "RSSI: ${healthData['avg_signal_strength']}dBm, "
                "Uptime: ${healthData['uptime_hours']}h, "

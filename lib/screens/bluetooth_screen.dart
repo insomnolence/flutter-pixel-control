@@ -8,6 +8,7 @@ import 'package:pixel_lights/models/ble_connection_state.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pixel_lights/models/connection_analytics.dart';
+import 'package:pixel_lights/widgets/styled_snack_bar.dart';
 import 'dart:io' show Platform;
 
 class BluetoothScreen extends StatefulWidget {
@@ -83,10 +84,11 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       bool hasPermissions = await _requestBluetoothPermissions();
       if (!hasPermissions) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Bluetooth permissions are required."),
-            ),
+          showStyledSnackBar(
+            context,
+            message: "Bluetooth permissions are required.",
+            icon: Icons.error,
+            backgroundColor: Colors.red,
           );
         }
         return;
@@ -137,8 +139,11 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       if (!value) {
         debugPrint("Bluetooth not available");
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Bluetooth is not available")),
+          showStyledSnackBar(
+            context,
+            message: "Bluetooth is not available",
+            icon: Icons.bluetooth_disabled,
+            backgroundColor: Colors.red,
           );
         }
       }
@@ -162,22 +167,21 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       // Use enhanced analytics-aware connection method for manual device selection
       final success = await viewModel.bluetoothService.connectToDeviceEnhanced(device);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Connected to ${device.platformName}"),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+        showStyledSnackBar(
+          context,
+          message: "Connected to ${device.platformName}",
+          icon: Icons.bluetooth_connected,
+          backgroundColor: Colors.green,
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to connect to ${device.platformName}"),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: "Retry",
-              onPressed: () => _connectToDevice(device, viewModel),
-            ),
+        showStyledSnackBar(
+          context,
+          message: "Failed to connect to ${device.platformName}",
+          icon: Icons.error,
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: "Retry",
+            onPressed: () => _connectToDevice(device, viewModel),
           ),
         );
       }
@@ -195,21 +199,21 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
     
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Auto-connect successful!"),
-          backgroundColor: Colors.green,
-        ),
+      showStyledSnackBar(
+        context,
+        message: "Auto-connect successful!",
+        icon: Icons.check_circle,
+        backgroundColor: Colors.green,
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(viewModel.connectionState.message ?? "Auto-connect failed"),
-          backgroundColor: Colors.red,
-          action: SnackBarAction(
-            label: "Retry",
-            onPressed: () => _startAutoConnect(viewModel),
-          ),
+      showStyledSnackBar(
+        context,
+        message: viewModel.connectionState.message ?? "Auto-connect failed",
+        icon: Icons.error,
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: "Retry",
+          onPressed: () => _startAutoConnect(viewModel),
         ),
       );
     }
@@ -234,7 +238,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
             side: BorderSide(color: Colors.white24, width: 1),
           ),
           child: DefaultTabController(
-            length: 3,
+            length: 2,
             child: Column(
               children: [
                 // Header with card-consistent styling
@@ -281,9 +285,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   unselectedLabelColor: Colors.white60,
                   indicatorColor: Colors.blue,
                   tabs: [
-                    Tab(icon: Icon(Icons.bluetooth), text: "BLE"),
-                    Tab(icon: Icon(Icons.hub), text: "Mesh"),
-                    Tab(icon: Icon(Icons.info), text: "System"),
+                    Tab(icon: Icon(Icons.speed), text: "Performance"),
+                    Tab(icon: Icon(Icons.hub), text: "Mesh Network"),
                   ],
                 ),
                 
@@ -291,9 +294,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _buildBleTab(viewModel),
+                      _buildPerformanceTab(viewModel),
                       _MeshTabWidget(viewModel: viewModel),
-                      _buildSystemTab(viewModel),
                     ],
                   ),
                 ),
@@ -305,43 +307,47 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
 
-  /// BLE connection analytics tab
-  Widget _buildBleTab(PixelLightsViewModel viewModel) {
+  /// Consolidated Performance tab (replaces BLE + System tabs)
+  Widget _buildPerformanceTab(PixelLightsViewModel viewModel) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           if (viewModel.currentAnalytics != null) ...[
             _buildAnalyticsCard(
-              "Connection Health",
+              "Connection Stability",
               "${viewModel.currentAnalytics!.connectionHealthScore.toStringAsFixed(1)}%",
               viewModel.currentAnalytics!.healthDescription,
-              Colors.blue,
+              _getStabilityColor(viewModel.currentAnalytics!.connectionHealthScore),
             ),
             _buildAnalyticsCard(
               "Signal Strength",
               "${viewModel.currentAnalytics!.signalStrength} dBm",
               viewModel.currentAnalytics!.signalQuality,
-              Colors.green,
+              _getSignalStrengthColor(viewModel.currentAnalytics!.signalStrength),
             ),
             _buildAnalyticsCard(
-              "Packet Success",
+              "Packet Success Rate",
               "${(viewModel.currentAnalytics!.packetSuccessRate * 100).toStringAsFixed(1)}%",
-              "${viewModel.currentAnalytics!.packetsTransmitted} sent",
-              Colors.orange,
+              "${viewModel.currentAnalytics!.packetsTransmitted} packets transmitted",
+              _getPacketSuccessColor(viewModel.currentAnalytics!.packetSuccessRate),
             ),
-            // Enhanced connection quality uptime
-            if (viewModel.currentAnalytics!.connectionQuality != null)
-              _buildAnalyticsCard(
-                "Current Uptime",
-                _formatUptime(viewModel.currentAnalytics!.connectionQuality!.currentUptime),
-                viewModel.currentAnalytics!.connectionQuality!.statusSummary,
-                Colors.purple,
-              ),
+            _buildAnalyticsCard(
+              "Connected Device",
+              viewModel.currentAnalytics!.deviceName,
+              "ESP32 LED Controller",
+              Colors.cyan,
+            ),
+            _buildAnalyticsCard(
+              "Session Duration",
+              _formatDuration(viewModel.currentAnalytics!.connectionTime),
+              "Active connection time",
+              Colors.purple,
+            ),
           ] else
             const Center(
               child: Text(
-                "No active BLE connection",
+                "No active connection",
                 style: TextStyle(color: Colors.white70),
               ),
             ),
@@ -396,9 +402,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                     children: [
                       Icon(Icons.info_outline, color: Colors.orange.shade300, size: 18),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Connect to ESP32 with mesh health support to view real-time mesh analytics",
+                          style: TextStyle(
+                            color: Colors.orange.shade100,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -447,9 +457,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Connected to ESP32 • Waiting for mesh health data (sent every 10 seconds)",
+                          style: TextStyle(
+                            color: Colors.blue.shade100,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -553,52 +567,6 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
 
-  /// System information tab
-  Widget _buildSystemTab(PixelLightsViewModel viewModel) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          if (viewModel.currentAnalytics != null) ...[
-            _buildAnalyticsCard(
-              "Connection Time",
-              "${viewModel.currentAnalytics!.connectionTime.inSeconds}s",
-              "Current session duration",
-              Colors.cyan,
-            ),
-            _buildAnalyticsCard(
-              "Device",
-              viewModel.currentAnalytics!.deviceName,
-              "Connected ESP32 node",
-              Colors.green,
-            ),
-            // Enhanced connection quality display
-            if (viewModel.currentAnalytics!.connectionQuality != null)
-              _buildAnalyticsCard(
-                "Quality",
-                viewModel.currentAnalytics!.connectionQuality!.qualityRating,
-                "${viewModel.currentAnalytics!.connectionQuality!.reliabilityScore.toStringAsFixed(1)}% reliability",
-                _getQualityColor(viewModel.currentAnalytics!.connectionQuality!.qualityRating),
-              )
-            else
-              _buildAnalyticsCard(
-                "Quality",
-                "Calculating...",
-                "Connection quality assessment",
-                Colors.grey,
-              ),
-            // TODO: Add ESP32 system info (uptime, role, memory)
-          ] else
-            const Center(
-              child: Text(
-                "No system information available",
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAnalyticsCard(String title, String value, String subtitle, Color color) {
     return Card(
@@ -672,7 +640,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
             _buildCardHeader(viewModel),
             const SizedBox(height: 20),
             _buildEnhancedSearchBar(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            _buildConnectedDeviceStatusStrip(viewModel),
+            const SizedBox(height: 8),
             Expanded(
               child: BleDeviceList(
                 devices: _getFilteredResults(),
@@ -800,30 +770,204 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
   
-  /// Get appropriate color for connection quality rating
-  Color _getQualityColor(String qualityRating) {
-    switch (qualityRating.toLowerCase()) {
-      case 'excellent':
-        return Colors.green;
-      case 'good':
-        return Colors.lightGreen;
-      case 'fair':
-        return Colors.orange;
-      case 'poor':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+  /// Helper color functions for Performance tab
+  Color _getStabilityColor(double score) {
+    if (score >= 90) return Colors.green;
+    if (score >= 70) return Colors.lightGreen;
+    if (score >= 50) return Colors.orange;
+    return Colors.red;
   }
   
-  /// Format uptime duration for display
-  String _formatUptime(Duration duration) {
+  Color _getSignalStrengthColor(int rssi) {
+    if (rssi >= -50) return Colors.green;
+    if (rssi >= -70) return Colors.orange;
+    return Colors.red;
+  }
+  
+  Color _getPacketSuccessColor(double rate) {
+    if (rate >= 0.95) return Colors.green;
+    if (rate >= 0.85) return Colors.orange;
+    return Colors.red;
+  }
+  
+  
+  /// Connected device status card (full card design, shows only when connected/connecting)
+  Widget _buildConnectedDeviceStatusStrip(PixelLightsViewModel viewModel) {
+    final isConnected = viewModel.bluetoothDevice != null;
+    final isConnecting = viewModel.connectionState.phase == BleConnectionPhase.connecting ||
+                        viewModel.connectionState.phase == BleConnectionPhase.discoveringServices;
+    
+    if (!isConnected && !isConnecting) {
+      return const SizedBox.shrink();
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      child: Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        elevation: 4,
+        color: const Color(0xFF424242), // Explicit dark gray background matching device cards
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _buildConnectionStatusIcon(viewModel),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isConnected 
+                            ? "Connected to ${viewModel.bluetoothDevice!.platformName}"
+                            : "Connecting...",
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isConnected) ...[
+                          Text(
+                            viewModel.bluetoothDevice!.remoteId.str,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildSignalStrengthRow(viewModel.currentAnalytics?.signalStrength ?? -70),
+                        ] else
+                          Text(
+                            viewModel.connectionState.message ?? "Establishing connection...",
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white70,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (isConnected)
+                    IconButton(
+                      icon: const Icon(Icons.bluetooth_disabled, color: Colors.red),
+                      onPressed: () => _disconnectDevice(viewModel),
+                      tooltip: "Disconnect",
+                    )
+                  else if (viewModel.connectionState.canRetry)
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: () => viewModel.retryConnection(),
+                      tooltip: "Retry Connection",
+                    ),
+                ],
+              ),
+              if (viewModel.connectionState.progress > 0 && 
+                  viewModel.connectionState.progress < 1)
+                Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    LinearProgressIndicator(
+                      value: viewModel.connectionState.progress,
+                      backgroundColor: Colors.grey[600],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        viewModel.connectionState.hasError 
+                            ? Colors.red 
+                            : Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Connection status icon based on current state
+  Widget _buildConnectionStatusIcon(PixelLightsViewModel viewModel) {
+    switch (viewModel.connectionState.phase) {
+      case BleConnectionPhase.ready:
+        return const Icon(Icons.bluetooth_connected, color: Colors.green, size: 28);
+      case BleConnectionPhase.connecting:
+      case BleConnectionPhase.discoveringServices:
+        return const SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+          ),
+        );
+      case BleConnectionPhase.error:
+        return const Icon(Icons.error, color: Colors.red, size: 28);
+      case BleConnectionPhase.scanning:
+        return const SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+          ),
+        );
+      default:
+        return const Icon(Icons.bluetooth, color: Colors.grey, size: 28);
+    }
+  }
+
+  /// Signal strength indicator row for the connection card
+  Widget _buildSignalStrengthRow(int rssi) {
+    final strength = _getSignalStrengthPercentage(rssi);
+    final signalColor = strength > 50 ? Colors.green : 
+                       strength > 25 ? Colors.orange : Colors.red;
+    
+    return Row(
+      children: [
+        // Signal strength bars
+        Row(
+          children: List.generate(5, (index) {
+            final barStrength = (index + 1) * 20;
+            return Container(
+              width: 3,
+              height: 8 + (index * 2),
+              margin: const EdgeInsets.only(right: 1),
+              decoration: BoxDecoration(
+                color: strength >= barStrength ? signalColor : Colors.grey[600],
+                borderRadius: BorderRadius.circular(1),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          "$rssi dBm (${strength.toInt()}%)",
+          style: TextStyle(
+            fontSize: 12,
+            color: signalColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Convert RSSI to percentage (rough approximation)
+  double _getSignalStrengthPercentage(int rssi) {
+    if (rssi >= -50) return 100;
+    if (rssi <= -100) return 0;
+    return ((rssi + 100) * 2).toDouble();
+  }
+
+
+  /// Format duration for display
+  String _formatDuration(Duration duration) {
     if (duration.inDays > 0) {
       return "${duration.inDays}d ${duration.inHours % 24}h";
     } else if (duration.inHours > 0) {
       return "${duration.inHours}h ${duration.inMinutes % 60}m";
     } else if (duration.inMinutes > 0) {
-      return "${duration.inMinutes}m";
+      return "${duration.inMinutes}m ${duration.inSeconds % 60}s";
     } else {
       return "${duration.inSeconds}s";
     }
@@ -894,9 +1038,13 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                     children: [
                       Icon(Icons.info_outline, color: Colors.orange.shade300, size: 18),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Connect to ESP32 with mesh health support to view real-time mesh analytics",
+                          style: TextStyle(
+                            color: Colors.orange.shade100,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -945,9 +1093,13 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Connected to ESP32 • Waiting for mesh health data (sent every 10 seconds)",
+                          style: TextStyle(
+                            color: Colors.blue.shade100,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -992,6 +1144,12 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                 neighbors > 0 ? Colors.green : Colors.orange,
               ),
               _buildAnalyticsCard(
+                "Total Nodes",
+                "${analytics.totalNodes ?? 0}",
+                "Total nodes in the mesh network",
+                Colors.teal,
+              ),
+              _buildAnalyticsCard(
                 "Mesh Success Rate",
                 "$successRate%",
                 "Packet transmission reliability",
@@ -1029,9 +1187,13 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                   children: [
                     Icon(Icons.check_circle_outline, color: Colors.green.shade300, size: 18),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         "Real-time ESP32 mesh analytics active • Updates every 60 seconds",
+                        style: TextStyle(
+                          color: Colors.green.shade100,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],

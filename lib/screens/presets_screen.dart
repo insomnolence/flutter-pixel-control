@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:pixel_lights/view_models/pixel_lights_view_model.dart';
 import 'package:pixel_lights/models/patterns.dart';
 import 'package:pixel_lights/screens/background.dart';
+import 'package:pixel_lights/widgets/styled_snack_bar.dart';
 import 'package:provider/provider.dart';
 
 // --- Preset Screen ---
@@ -184,11 +185,11 @@ class _PresetButtonState extends State<PresetButton> {
             onTap: isBluetoothConnected // Only enable tap if connected
                 ? widget.onPressed
                 : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Bluetooth not connected. Please connect to a device first."),
-                        duration: Duration(seconds: 2),
-                      ),
+                    showStyledSnackBar(
+                      context,
+                      message: 'Bluetooth not connected. Please connect to a device first.',
+                      icon: Icons.bluetooth_disabled,
+                      backgroundColor: Colors.red,
                     );
                   },
             borderRadius: BorderRadius.circular(16.0),

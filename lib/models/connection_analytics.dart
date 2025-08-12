@@ -27,6 +27,7 @@ class ConnectionAnalytics {
   final int? meshRSSI;             // Average mesh RSSI 
   final int? meshUptimeHours;      // ESP32 uptime in hours
   final int? meshRole;             // 0=client, 1=root_ble, 2=root_autonomous
+  final int? totalNodes;           // Total nodes detected in mesh network
 
   ConnectionAnalytics({
     required this.timestamp,
@@ -50,6 +51,7 @@ class ConnectionAnalytics {
     this.meshRSSI,
     this.meshUptimeHours,
     this.meshRole,
+    this.totalNodes,
   });
 
   /// Calculate success rate based on transmitted vs dropped packets
@@ -148,6 +150,7 @@ class ConnectionAnalytics {
     int? meshRSSI,
     int? meshUptimeHours,
     int? meshRole,
+    int? totalNodes,
   }) {
     return ConnectionAnalytics(
       timestamp: timestamp ?? this.timestamp,
@@ -171,6 +174,7 @@ class ConnectionAnalytics {
       meshRSSI: meshRSSI ?? this.meshRSSI,
       meshUptimeHours: meshUptimeHours ?? this.meshUptimeHours,
       meshRole: meshRole ?? this.meshRole,
+      totalNodes: totalNodes ?? this.totalNodes,
     );
   }
 
@@ -197,6 +201,7 @@ class ConnectionAnalytics {
     'meshRSSI': meshRSSI,
     'meshUptimeHours': meshUptimeHours,
     'meshRole': meshRole,
+    'totalNodes': totalNodes,
   };
 
   /// Create from JSON
@@ -225,6 +230,7 @@ class ConnectionAnalytics {
       meshRSSI: json['meshRSSI'],
       meshUptimeHours: json['meshUptimeHours'],
       meshRole: json['meshRole'],
+      totalNodes: json['totalNodes'],
     );
   }
 

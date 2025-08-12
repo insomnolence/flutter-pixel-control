@@ -306,9 +306,13 @@ class PixelLightsViewModel extends ChangeNotifier {
         _bluetoothDevice = null;
         _txCharacteristic = null;
         
+        // Reset to Idle if not already Idle
+        if (activePatternName != 'Idle') {
+          _setPatternActive('Idle');
+        }
+        
         // Immediate UI clear for better responsiveness
         _currentAnalytics = null;
-        notifyListeners();
         
         // End analytics session (preserve health data for brief connection issues)
         _analyticsService.endSession(clearHealthData: false);

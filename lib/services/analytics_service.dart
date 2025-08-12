@@ -256,6 +256,7 @@ class AnalyticsService {
       meshRSSI: _latestHealthData?['avg_signal_strength'],
       meshUptimeHours: _latestHealthData?['uptime_hours'],
       meshRole: _latestHealthData?['mesh_role'],
+      totalNodes: _latestHealthData?['total_nodes'],
     );
   }
 

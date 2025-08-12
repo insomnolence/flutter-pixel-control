@@ -53,11 +53,6 @@ class _BleDeviceListState extends State<BleDeviceList>
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Connection status header
-          SliverToBoxAdapter(
-            child: _buildConnectionStatusCard(),
-          ),
-          
           // Scanning indicator
           if (widget.isScanning)
             SliverToBoxAdapter(
@@ -82,101 +77,6 @@ class _BleDeviceListState extends State<BleDeviceList>
     );
   }
 
-  /// Connection status card at the top - informational display only
-  Widget _buildConnectionStatusCard() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      color: const Color(0xFF424242), // Explicit dark gray background
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _buildConnectionStatusIcon(),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.connectionState.statusTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (widget.connectionState.message != null)
-                        Text(
-                          widget.connectionState.message!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (widget.connectionState.canRetry)
-                  IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.white),
-                    onPressed: () => _retryConnection(),
-                  ),
-              ],
-            ),
-            if (widget.connectionState.progress > 0 && 
-                widget.connectionState.progress < 1)
-              Column(
-                children: [
-                  const SizedBox(height: 12),
-                  LinearProgressIndicator(
-                    value: widget.connectionState.progress,
-                    backgroundColor: Colors.grey[600],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      widget.connectionState.hasError 
-                          ? Colors.red 
-                          : Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Connection status icon based on current state
-  Widget _buildConnectionStatusIcon() {
-    switch (widget.connectionState.phase) {
-      case BleConnectionPhase.ready:
-        return const Icon(Icons.bluetooth_connected, color: Colors.green, size: 28);
-      case BleConnectionPhase.connecting:
-      case BleConnectionPhase.discoveringServices:
-        return const SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-          ),
-        );
-      case BleConnectionPhase.error:
-        return const Icon(Icons.error, color: Colors.red, size: 28);
-      case BleConnectionPhase.scanning:
-        return const SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-          ),
-        );
-      default:
-        return const Icon(Icons.bluetooth, color: Colors.grey, size: 28);
-    }
-  }
 
   /// Scanning indicator when actively scanning
   Widget _buildScanningIndicator() {
