@@ -37,6 +37,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val versionName = variant.versionName ?: "1.0.0"
+            output.outputFileName = "PixelLights-v${versionName}-${variant.buildType.name}.apk"
+        }
+    }
 }
 
 flutter {

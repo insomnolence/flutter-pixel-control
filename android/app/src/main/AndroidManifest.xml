@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <application
-        android:label="pixel_lights"
+        android:label="Pixel Lights"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
