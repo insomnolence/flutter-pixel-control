@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
 /// Represents a service interruption that impacts user experience

@@ -68,7 +68,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           4,
-          255,
+          67,  // Flash: brightness (80 caused hardware crash)
           100,
           255,
           Pattern.Flash,
@@ -78,7 +78,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           60,
-          255,
+          67,  // March: sustained brightness
           40,
           34,
           Pattern.March,
@@ -88,7 +88,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           60,
-          255,
+          67,  // MiniTwinkle: sustained brightness
           100,
           75,
           Pattern.MiniTwinkle,
@@ -98,7 +98,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           0,
-          127,
+          67,  // Gradient: sustained brightness
           75,
           75,
           Pattern.Gradient,
@@ -113,7 +113,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           4,
-          255,
+          67,  // Flash: brightness (80 caused hardware crash)
           100,
           255,
           Pattern.Flash,
@@ -123,7 +123,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           60,
-          255,
+          67,  // March: sustained brightness
           40,
           34,
           Pattern.March,
@@ -133,7 +133,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           60,
-          255,
+          67,  // MiniTwinkle: sustained brightness
           100,
           75,
           Pattern.MiniTwinkle,
@@ -143,7 +143,7 @@ Map<String, Steps> patterns = {
         );
         steps.addStep(
           0,
-          127,
+          67,  // Gradient: sustained brightness
           75,
           75,
           Pattern.Gradient,
@@ -161,7 +161,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Idle: brightness 35
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -178,7 +178,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          255,
+          67,  // Normal brightness
           35,
           17,
           Pattern.Gradient,
@@ -191,7 +191,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -208,7 +208,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          255,
+          67,  // Normal brightness
           75,
           75,
           Pattern.Gradient,
@@ -221,7 +221,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -238,7 +238,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          255,
+          67,  // Normal brightness
           160,
           160,
           Pattern.MiniTwinkle,
@@ -251,7 +251,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -268,7 +268,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          127,
+          67,  // Normal brightness
           65,
           255,
           Pattern.CandyCane,
@@ -281,7 +281,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -298,7 +298,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          127,
+          67,  // Normal brightness
           100,
           255,
           Pattern.CandyCane,
@@ -311,7 +311,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -328,7 +328,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          255,
+          67,  // Normal brightness
           100,
           255,
           Pattern.Fixed,
@@ -341,7 +341,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -358,7 +358,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          255,
+          67,  // Normal brightness
           127,
           8,
           Pattern.March,
@@ -371,7 +371,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -388,7 +388,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          255,
+          67,  // Normal brightness
           127,
           8,
           Pattern.Wipe,
@@ -401,7 +401,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -418,7 +418,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          255,
+          67,  // Normal brightness
           255,
           9,
           Pattern.MiniSparkle,
@@ -431,7 +431,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -448,7 +448,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          255,
+          67,  // Normal brightness
           100,
           128,
           Pattern.MiniTwinkle,
@@ -461,7 +461,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -478,7 +478,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          255,
+          67,  // Normal brightness
           100,
           255,
           Pattern.Rainbow,
@@ -491,7 +491,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),
@@ -508,7 +508,7 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          255,
+          67,  // Normal brightness
           128,
           255,
           Pattern.Strobe,
@@ -521,7 +521,7 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              20,
+              35,  // Return to idle brightness
               35,
               Pattern.Gradient,
               colorToRGB(AppColors.pureRed.value),

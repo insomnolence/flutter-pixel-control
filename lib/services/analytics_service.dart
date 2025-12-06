@@ -32,7 +32,6 @@ class AnalyticsService {
   final List<int> _rssiReadings = [];
   int _userInitiatedRetries = 0;
   int _transparentRecoveries = 0;
-  DateTime? _currentConnectionStart;
   
   // ESP32 Mesh Health Analytics
   Map<String, dynamic>? _latestHealthData;
@@ -69,7 +68,6 @@ class AnalyticsService {
     
     _sessionStart = DateTime.now();
     _connectionStart = DateTime.now();
-    _currentConnectionStart = DateTime.now();
     _currentDevice = device;
     _packetsSent = 0;
     _packetsDropped = 0;

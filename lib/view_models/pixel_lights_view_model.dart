@@ -105,7 +105,7 @@ class PixelLightsViewModel extends ChangeNotifier {
 
   Pattern patternValue = Pattern.MiniTwinkle;
 
-  int intensityValue = 128;
+  int intensityValue = 67;
   int rateValue = 100;
   int levelValue = 128;
 
@@ -413,18 +413,6 @@ class PixelLightsViewModel extends ChangeNotifier {
     }
   }
   
-  // Set pattern to loading state
-  void _setPatternLoading(String patternName) {
-    _clearTimers();
-    _currentExecution = PatternExecution(
-      patternName: patternName,
-      state: PatternState.loading,
-      totalDurationSeconds: 0,
-      startTime: DateTime.now(),
-    );
-    notifyListeners();
-  }
-  
   // Set pattern to active state (simplified)
   void _setPatternActive(String patternName) {
     debugPrint("Setting pattern active: $patternName");
@@ -439,50 +427,7 @@ class PixelLightsViewModel extends ChangeNotifier {
     notifyListeners();
     debugPrint("Pattern active set to: ${_currentExecution?.patternName}");
   }
-  
-  // Set pattern to error state
-  void _setPatternError(String patternName, String error) {
-    _clearTimers();
-    _currentExecution = PatternExecution(
-      patternName: patternName,
-      state: PatternState.error,
-      errorMessage: error,
-    );
-    notifyListeners();
-    
-    // Auto-clear error after 3 seconds and return to Idle
-    Timer(const Duration(seconds: 3), () {
-      if (_currentExecution?.state == PatternState.error) {
-        _returnToIdle();
-      }
-    });
-  }
-  
-  // Start progress tracking
-  void _startProgressTracking() {
-    _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_currentExecution?.state == PatternState.active) {
-        final startTime = _currentExecution!.startTime!;
-        final elapsed = DateTime.now().difference(startTime).inSeconds;
-        _currentExecution = _currentExecution!.copyWith(elapsedSeconds: elapsed);
-        notifyListeners();
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-  
-  // Schedule automatic return to Idle
-  void _scheduleCompletion(int durationSeconds) {
-    _completionTimer?.cancel();
-    _completionTimer = Timer(Duration(seconds: durationSeconds), () {
-      if (_currentExecution?.state == PatternState.active) {
-        _returnToIdle();
-      }
-    });
-  }
-  
+
   // Return to Idle pattern
   void _returnToIdle() {
     _clearTimers();
@@ -542,7 +487,7 @@ class PixelLightsViewModel extends ChangeNotifier {
         debugPrint("sendPattern: is disposed.");
         return;
       }
-      if (currentCompleter!.isCompleted) {
+      if (currentCompleter.isCompleted) {
         debugPrint("sendPattern: completer completed. Stopping.");
         return;
       }

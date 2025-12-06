@@ -298,12 +298,6 @@ class _BleDeviceListState extends State<BleDeviceList>
     );
   }
 
-  /// Handle retry connection button
-  void _retryConnection() {
-    // This will be implemented when we integrate with the view model
-    debugPrint("Retry connection requested");
-  }
-
   @override
   void dispose() {
     _animationController.dispose();

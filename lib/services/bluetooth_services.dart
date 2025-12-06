@@ -138,7 +138,7 @@ class PixelBluetoothService implements IBluetoothService {
   @override
   Future<bool> connect(BluetoothDevice device) async {
     try {
-      await device.connect();
+      await device.connect(license: License.free);
       // Wait for the connection to complete, or timeout.
       await device.connectionState.firstWhere(
         (state) => state == BluetoothConnectionState.connected,
