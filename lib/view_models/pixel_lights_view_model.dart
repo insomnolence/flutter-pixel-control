@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pixel_lights/models/packet.dart';
 import 'package:pixel_lights/core/constants/app_colors.dart';
+import 'package:pixel_lights/core/constants/led_config.dart';
 import 'package:pixel_lights/models/patterns.dart' as pixel_patterns;
 import 'package:pixel_lights/services/bluetooth_services.dart';
 import 'package:pixel_lights/models/ble_connection_state.dart';
@@ -105,17 +106,24 @@ class PixelLightsViewModel extends ChangeNotifier {
 
   Pattern patternValue = Pattern.MiniTwinkle;
 
-  int intensityValue = 67;
-  int rateValue = 100;
-  int levelValue = 128;
+  int intensityValue = LedConfig.defaultIntensity;
+  int rateValue = LedConfig.defaultSpeed;
+  int levelValue = LedConfig.defaultLevel;
 
   final IBluetoothService _bluetoothService;
   final AnalyticsService _analyticsService = AnalyticsService();
   StreamSubscription<BleConnectionState>? _enhancedConnectionSubscription;
   StreamSubscription<ConnectionAnalytics?>? _analyticsSubscription;
+  StreamSubscription<Esp32Notification>? _esp32NotificationSubscription;
   BleConnectionState _connectionState = BleConnectionState.idle();
   ConnectionAnalytics? _currentAnalytics;
   Timer? _analyticsDebounceTimer;
+
+  // Callback for when root is transferred to another node (BLE displacement)
+  Function(String message)? onRootTransferred;
+  
+  // Callback for when a BLE write operation fails (for UI error display)
+  Function(String message)? onWriteError;
 
   PixelLightsViewModel({IBluetoothService? bluetoothService})
     : _bluetoothService = bluetoothService ?? PixelBluetoothService() {
@@ -329,6 +337,28 @@ class PixelLightsViewModel extends ChangeNotifier {
         debugPrint("PixelLightsViewModel: Analytics updated - ${analytics != null ? 'Data' : 'Null (cleared)'}");
       });
     });
+
+    // Listen for ESP32 notifications (root transfer, etc.)
+    _esp32NotificationSubscription = _bluetoothService.esp32NotificationStream
+        .listen((notification) {
+      _handleEsp32Notification(notification);
+    });
+  }
+
+  /// Handle ESP32 notifications
+  void _handleEsp32Notification(Esp32Notification notification) {
+    switch (notification.type) {
+      case Esp32NotificationType.rootTransferred:
+        debugPrint("🔄 ViewModel: Root transferred to another node - handling displacement");
+        // Notify UI callback if set
+        onRootTransferred?.call("Another device took control of the lights. You have been disconnected.");
+        // The ESP32 will disconnect us, so we don't need to disconnect manually
+        // But we should prepare the UI for disconnection
+        break;
+      case Esp32NotificationType.unknown:
+        // Ignore unknown notifications
+        break;
+    }
   }
 
   /// Auto-connect to a device with intelligent selection
@@ -366,7 +396,7 @@ class PixelLightsViewModel extends ChangeNotifier {
         debugPrint("Connection retry successful!");
       } else {
         debugPrint("Connection retry failed");
-        _analyticsService.recordReconnectionAttempt();
+        _analyticsService.recordUserRetry();
       }
       return success;
     } catch (e) {
@@ -463,15 +493,18 @@ class PixelLightsViewModel extends ChangeNotifier {
         "UsePattern: Pattern step duration: ${i.duration}, command: ${packet.command}, speed: ${packet.speed} , brightness: ${packet.brightness}, pattern: ${packet.pattern}, level: ${packet.level}, color: ${packet.color}",
       );
 
-      try {
-        await _bluetoothService.writeCharacteristic(_txCharacteristic, packet);
+      final writeSuccess = await _bluetoothService.writeCharacteristic(_txCharacteristic, packet);
+      if (writeSuccess) {
         debugPrint("UsePattern: writing packet");
         _analyticsService.recordPacketSent();
-      } catch (e) {
-        debugPrint("UsePattern: packet write failed: $e");
+      } else {
+        debugPrint("UsePattern: packet write failed");
         _analyticsService.recordPacketDropped();
-        _analyticsService.recordError("Packet write failed: $e");
-        rethrow;
+        _analyticsService.recordError("Packet write failed");
+        // Notify UI of write failure
+        onWriteError?.call("Failed to send command to device");
+        // Don't continue with pattern if write failed
+        return;
       }
       
       // Set pattern to active after first packet is sent successfully
@@ -507,9 +540,9 @@ class PixelLightsViewModel extends ChangeNotifier {
         intensityValue,
         rateValue,
         patternValue,
-        colorToRGB(color1.value),
-        colorToRGB(color2.value),
-        colorToRGB(color3.value),
+        colorToRGB(color1.toARGB32()),
+        colorToRGB(color2.toARGB32()),
+        colorToRGB(color3.toARGB32()),
         levelValue,
       );
 
@@ -523,9 +556,9 @@ class PixelLightsViewModel extends ChangeNotifier {
         rateValue,
         levelValue,
         patternValue,
-        colorToRGB(color1.value),
-        colorToRGB(color2.value),
-        colorToRGB(color3.value),
+        colorToRGB(color1.toARGB32()),
+        colorToRGB(color2.toARGB32()),
+        colorToRGB(color3.toARGB32()),
       );
     }
 
@@ -558,6 +591,7 @@ class PixelLightsViewModel extends ChangeNotifier {
     _connectionStateSubscription?.cancel();
     _enhancedConnectionSubscription?.cancel();
     _analyticsSubscription?.cancel();
+    _esp32NotificationSubscription?.cancel();
     _analyticsService.dispose();
     _bluetoothService.dispose();
     super.dispose();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pixel_lights/models/ble_connection_state.dart';
+import 'package:pixel_lights/core/utils/ble_utils.dart';
 
 /// Professional BLE device list with card-based design and enhanced UX
 class BleDeviceList extends StatefulWidget {
@@ -62,7 +63,10 @@ class _BleDeviceListState extends State<BleDeviceList>
           // Device list
           SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildDeviceCard(widget.devices[index], index),
+              (context, index) {
+                final device = widget.devices[index];
+                return _buildDeviceCard(device, index, key: ValueKey(device.device.remoteId.str));
+              },
               childCount: widget.devices.length,
             ),
           ),
@@ -107,7 +111,7 @@ class _BleDeviceListState extends State<BleDeviceList>
   }
 
   /// Individual device card with enhanced design
-  Widget _buildDeviceCard(ScanResult result, int index) {
+  Widget _buildDeviceCard(ScanResult result, int index, {Key? key}) {
     final device = result.device;
     final isConnected = device == widget.connectedDevice;
     final isConnecting = widget.connectionState.device == device &&
@@ -115,6 +119,7 @@ class _BleDeviceListState extends State<BleDeviceList>
          widget.connectionState.phase == BleConnectionPhase.discoveringServices);
 
     return AnimatedContainer(
+      key: key,
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Card(
@@ -241,12 +246,8 @@ class _BleDeviceListState extends State<BleDeviceList>
     );
   }
 
-  /// Convert RSSI to percentage (rough approximation)
-  double _getSignalStrength(int rssi) {
-    if (rssi >= -50) return 100;
-    if (rssi <= -100) return 0;
-    return ((rssi + 100) * 2).toDouble();
-  }
+  /// Convert RSSI to percentage
+  double _getSignalStrength(int rssi) => rssiToPercentage(rssi);
 
   /// Trailing widget for device cards (connect button, status, etc.)
   Widget _buildDeviceTrailing(BluetoothDevice device, bool isConnected, bool isConnecting) {

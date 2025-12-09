@@ -22,8 +22,6 @@ class AnalyticsService {
   BluetoothDevice? _currentDevice;
   int _packetsSent = 0;
   int _packetsDropped = 0;
-  @Deprecated('Use enhanced quality tracking instead')
-  int _reconnectionAttempts = 0;
   int _lastSignalStrength = -70;
   final List<String> _sessionErrors = [];
   
@@ -71,7 +69,6 @@ class AnalyticsService {
     _currentDevice = device;
     _packetsSent = 0;
     _packetsDropped = 0;
-    _reconnectionAttempts = 0;
     _lastSignalStrength = signalStrength;
     _sessionErrors.clear();
     
@@ -116,13 +113,6 @@ class AnalyticsService {
     _packetsDropped++;
   }
 
-  /// Record reconnection attempt (DEPRECATED - use specific quality tracking methods)
-  @Deprecated('Use recordUserRetry() or recordTransparentRecovery() instead')
-  void recordReconnectionAttempt() {
-    _reconnectionAttempts++;
-    debugPrint("AnalyticsService: Legacy reconnection attempt #$_reconnectionAttempts");
-  }
-  
   /// Record user-initiated retry attempt (manual retry button press)
   void recordUserRetry() {
     _userInitiatedRetries++;
@@ -239,7 +229,7 @@ class AnalyticsService {
           : "Unknown Device",
       signalStrength: _lastSignalStrength,
       connectionTime: connectionTime,
-      reconnectionAttempts: _reconnectionAttempts, // Keep for backward compatibility
+      reconnectionAttempts: 0, // Legacy field kept for backward compatibility with stored sessions
       errors: List.from(_sessionErrors),
       packetsTransmitted: _packetsSent,
       packetsDropped: _packetsDropped,

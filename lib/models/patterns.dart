@@ -1,6 +1,7 @@
 import 'package:pixel_lights/models/packet.dart';
 import 'package:flutter/material.dart';
 import 'package:pixel_lights/core/constants/app_colors.dart';
+import 'package:pixel_lights/core/constants/led_config.dart';
 
 // Helper function to convert Flutter ARGB color to ESP32 RGB format
 int colorToRGB(int flutterColorValue) {
@@ -68,43 +69,43 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           4,
-          67,  // Flash: brightness (80 caused hardware crash)
+          LedConfig.brightnessNormal,  // Flash
           100,
           255,
           Pattern.Flash,
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
         );
         steps.addStep(
           60,
-          67,  // March: sustained brightness
+          LedConfig.brightnessNormal,  // March
           40,
           34,
           Pattern.March,
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
         );
         steps.addStep(
           60,
-          67,  // MiniTwinkle: sustained brightness
+          LedConfig.brightnessNormal,  // MiniTwinkle
           100,
           75,
           Pattern.MiniTwinkle,
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(Color(0xFFFFFC40).value),
-          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(Color(0xFFFFFC40).toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
         );
         steps.addStep(
           0,
-          67,  // Gradient: sustained brightness
+          LedConfig.brightnessNormal,  // Gradient
           75,
           75,
           Pattern.Gradient,
-          colorToRGB(AppColors.pureYellow.value),
-          colorToRGB(Color(0xFFFFFC40).value),
-          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
+          colorToRGB(Color(0xFFFFFC40).toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
         );
         return steps;
       })(),
@@ -113,43 +114,43 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           4,
-          67,  // Flash: brightness (80 caused hardware crash)
+          LedConfig.brightnessNormal,  // Flash
           100,
           255,
           Pattern.Flash,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         steps.addStep(
           60,
-          67,  // March: sustained brightness
+          LedConfig.brightnessNormal,  // March
           40,
           34,
           Pattern.March,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         steps.addStep(
           60,
-          67,  // MiniTwinkle: sustained brightness
+          LedConfig.brightnessNormal,  // MiniTwinkle
           100,
           75,
           Pattern.MiniTwinkle,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(Color(0xFFFF4040).value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(Color(0xFFFF4040).toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         steps.addStep(
           0,
-          67,  // Gradient: sustained brightness
+          LedConfig.brightnessNormal,  // Gradient
           75,
           75,
           Pattern.Gradient,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(Color(0xFFFF4040).value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(Color(0xFFFF4040).toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         return steps;
       })(),
@@ -161,12 +162,12 @@ Map<String, Steps> patterns = {
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Idle: brightness 35
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -178,25 +179,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
-          35,
+          LedConfig.brightnessNormal,
+          LedConfig.speedSlow,
           17,
           Pattern.Gradient,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -208,25 +209,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
-          75,
+          LedConfig.brightnessNormal,
+          LedConfig.speedMedium,
           75,
           Pattern.Gradient,
-          colorToRGB(AppColors.pureBlue.value),
-          colorToRGB(Color(0xFF8080FF).value),
-          colorToRGB(AppColors.pureBlue.value),
+          colorToRGB(AppColors.pureBlue.toARGB32()),
+          colorToRGB(Color(0xFF8080FF).toARGB32()),
+          colorToRGB(AppColors.pureBlue.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -238,25 +239,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           160,
           160,
           Pattern.MiniTwinkle,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureBlue.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureBlue.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -268,25 +269,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           65,
           255,
           Pattern.CandyCane,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureGreen.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureGreen.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -298,25 +299,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
-          100,
+          LedConfig.brightnessNormal,
+          LedConfig.speedFast,
           255,
           Pattern.CandyCane,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureRed.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureRed.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -328,25 +329,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          67,  // Normal brightness
-          100,
+          LedConfig.brightnessNormal,
+          LedConfig.speedFast,
           255,
           Pattern.Fixed,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureGreen.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureGreen.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -358,25 +359,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           127,
           8,
           Pattern.March,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureGreen.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureGreen.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -388,25 +389,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           127,
           8,
           Pattern.Wipe,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureGreen.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureGreen.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -418,25 +419,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           255,
           9,
           Pattern.MiniSparkle,
-          colorToRGB(AppColors.pureRed.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureGreen.value),
+          colorToRGB(AppColors.pureRed.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureGreen.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -448,25 +449,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           30,
-          67,  // Normal brightness
-          100,
+          LedConfig.brightnessNormal,
+          LedConfig.speedFast,
           128,
           Pattern.MiniTwinkle,
-          colorToRGB(Color(0xFF00FFFF).value),
-          colorToRGB(Color(0xFFFF00FF).value),
-          colorToRGB(AppColors.pureYellow.value),
+          colorToRGB(Color(0xFF00FFFF).toARGB32()),
+          colorToRGB(Color(0xFFFF00FF).toARGB32()),
+          colorToRGB(AppColors.pureYellow.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -478,25 +479,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          67,  // Normal brightness
-          100,
+          LedConfig.brightnessNormal,
+          LedConfig.speedFast,
           255,
           Pattern.Rainbow,
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),
@@ -508,25 +509,25 @@ Map<String, Steps> patterns = {
         final steps = Steps();
         steps.addStep(
           10,
-          67,  // Normal brightness
+          LedConfig.brightnessNormal,
           128,
           255,
           Pattern.Strobe,
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureWhite.value),
-          colorToRGB(AppColors.pureWhite.value),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
+          colorToRGB(AppColors.pureWhite.toARGB32()),
         );
         steps.addStepClass(
           Step(
             0,
             Packet(
               PixelCommand.HC_PATTERN,
-              35,  // Return to idle brightness
-              35,
+              LedConfig.brightnessIdle,
+              LedConfig.speedSlow,
               Pattern.Gradient,
-              colorToRGB(AppColors.pureRed.value),
-              colorToRGB(AppColors.pureWhite.value),
-              colorToRGB(AppColors.pureGreen.value),
+              colorToRGB(AppColors.pureRed.toARGB32()),
+              colorToRGB(AppColors.pureWhite.toARGB32()),
+              colorToRGB(AppColors.pureGreen.toARGB32()),
               17,
             ),
           ),

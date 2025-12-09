@@ -88,10 +88,10 @@ class _ManualScreenState extends State<ManualScreen> {
     return Card(
       elevation: 8,
       margin: EdgeInsets.zero,
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -102,14 +102,14 @@ class _ManualScreenState extends State<ManualScreen> {
               children: [
                 Icon(
                   Icons.palette,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'COLORS',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
@@ -160,13 +160,13 @@ class _ManualScreenState extends State<ManualScreen> {
               border: Border.all(
                 color: isSelected 
                     ? Colors.white 
-                    : Colors.white.withOpacity(0.3),
+                    : Colors.white.withValues(alpha: 0.3),
                 width: isSelected ? 3 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         blurRadius: 8,
                         spreadRadius: 2,
                       )
@@ -180,7 +180,7 @@ class _ManualScreenState extends State<ManualScreen> {
             style: TextStyle(
               color: isSelected 
                   ? Colors.white 
-                  : Colors.white.withOpacity(0.7),
+                  : Colors.white.withValues(alpha: 0.7),
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
@@ -231,16 +231,16 @@ class _ManualScreenState extends State<ManualScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
           Text(
             'Adjust Selected Color',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -268,10 +268,10 @@ class _ManualScreenState extends State<ManualScreen> {
     return Card(
       elevation: 8,
       margin: EdgeInsets.zero,
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -282,14 +282,14 @@ class _ManualScreenState extends State<ManualScreen> {
               children: [
                 Icon(
                   Icons.tune,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'PATTERN & CONTROLS',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
@@ -346,14 +346,14 @@ class _ManualScreenState extends State<ManualScreen> {
           children: [
             Icon(
               Icons.pattern,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               size: 20,
             ),
             const SizedBox(width: 8),
             Text(
               'Pattern',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -363,15 +363,15 @@ class _ManualScreenState extends State<ManualScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -380,7 +380,7 @@ class _ManualScreenState extends State<ManualScreen> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<Pattern>(
               value: viewModel.patternValue,
-              dropdownColor: Colors.black.withOpacity(0.95),
+              dropdownColor: Colors.black.withValues(alpha: 0.95),
               elevation: 12,
               borderRadius: BorderRadius.circular(12),
               onChanged: (Pattern? newValue) {
@@ -404,7 +404,7 @@ class _ManualScreenState extends State<ManualScreen> {
                         Text(
                           value.name,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -425,7 +425,7 @@ class _ManualScreenState extends State<ManualScreen> {
                         Text(
                           value.name,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -440,7 +440,7 @@ class _ManualScreenState extends State<ManualScreen> {
                 padding: const EdgeInsets.only(right: 16),
                 child: Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 24,
                 ),
               ),
@@ -454,31 +454,31 @@ class _ManualScreenState extends State<ManualScreen> {
   Widget _getPatternIcon(String patternName) {
     switch (patternName.toLowerCase()) {
       case 'solid':
-        return Icon(Icons.circle, size: 18, color: Colors.amber.withOpacity(0.8));
+        return Icon(Icons.circle, size: 18, color: Colors.amber.withValues(alpha: 0.8));
       case 'gradient':
-        return Icon(Icons.gradient, size: 18, color: Colors.purple.withOpacity(0.8));
+        return Icon(Icons.gradient, size: 18, color: Colors.purple.withValues(alpha: 0.8));
       case 'rainbow':
-        return Icon(Icons.color_lens, size: 18, color: Colors.red.withOpacity(0.8));
+        return Icon(Icons.color_lens, size: 18, color: Colors.red.withValues(alpha: 0.8));
       case 'strobe':
-        return Icon(Icons.flash_on, size: 18, color: Colors.yellow.withOpacity(0.8));
+        return Icon(Icons.flash_on, size: 18, color: Colors.yellow.withValues(alpha: 0.8));
       case 'march':
-        return Icon(Icons.trending_up, size: 18, color: Colors.blue.withOpacity(0.8));
+        return Icon(Icons.trending_up, size: 18, color: Colors.blue.withValues(alpha: 0.8));
       case 'wipe':
-        return Icon(Icons.cleaning_services, size: 18, color: Colors.cyan.withOpacity(0.8));
+        return Icon(Icons.cleaning_services, size: 18, color: Colors.cyan.withValues(alpha: 0.8));
       case 'twinkle':
       case 'minitwinkle':
-        return Icon(Icons.star, size: 18, color: Colors.pink.withOpacity(0.8));
+        return Icon(Icons.star, size: 18, color: Colors.pink.withValues(alpha: 0.8));
       case 'sparkle':
       case 'minisparkle':
-        return Icon(Icons.auto_awesome, size: 18, color: Colors.orange.withOpacity(0.8));
+        return Icon(Icons.auto_awesome, size: 18, color: Colors.orange.withValues(alpha: 0.8));
       case 'candycane':
-        return Icon(Icons.cake, size: 18, color: Colors.red.withOpacity(0.8));
+        return Icon(Icons.cake, size: 18, color: Colors.red.withValues(alpha: 0.8));
       case 'flash':
-        return Icon(Icons.flash_auto, size: 18, color: Colors.white.withOpacity(0.8));
+        return Icon(Icons.flash_auto, size: 18, color: Colors.white.withValues(alpha: 0.8));
       case 'fixed':
-        return Icon(Icons.lock, size: 18, color: Colors.grey.withOpacity(0.8));
+        return Icon(Icons.lock, size: 18, color: Colors.grey.withValues(alpha: 0.8));
       default:
-        return Icon(Icons.lightbulb_outline, size: 18, color: Colors.white.withOpacity(0.6));
+        return Icon(Icons.lightbulb_outline, size: 18, color: Colors.white.withValues(alpha: 0.6));
     }
   }
 
@@ -500,14 +500,14 @@ class _ManualScreenState extends State<ManualScreen> {
               children: [
                 Icon(
                   icon,
-                  color: accentColor.withOpacity(0.8),
+                  color: accentColor.withValues(alpha: 0.8),
                   size: 18,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -517,9 +517,9 @@ class _ManualScreenState extends State<ManualScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
+                color: accentColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: accentColor.withOpacity(0.4)),
+                border: Border.all(color: accentColor.withValues(alpha: 0.4)),
               ),
               child: Text(
                 '${percentage.round()}%',
@@ -543,9 +543,9 @@ class _ManualScreenState extends State<ManualScreen> {
               overlayRadius: 20,
             ),
             thumbColor: accentColor,
-            activeTrackColor: accentColor.withOpacity(0.8),
-            inactiveTrackColor: Colors.white.withOpacity(0.2),
-            overlayColor: accentColor.withOpacity(0.3),
+            activeTrackColor: accentColor.withValues(alpha: 0.8),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+            overlayColor: accentColor.withValues(alpha: 0.3),
           ),
           child: Slider(
             min: 0,

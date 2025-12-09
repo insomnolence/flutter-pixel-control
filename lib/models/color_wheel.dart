@@ -11,11 +11,6 @@ class _ColorWheelPanGestureRecognizer extends PanGestureRecognizer {
     resolve(GestureDisposition.accepted);
   }
 
-  @override
-  void handleEvent(PointerEvent event) {
-    super.handleEvent(event);
-    // Process the event normally but ensure we own it
-  }
 }
 
 class CustomHuePicker extends StatefulWidget {
@@ -27,14 +22,13 @@ class CustomHuePicker extends StatefulWidget {
   final HSVColor hsvColor;
 
   CustomHuePicker({
-    Key? key,
+    super.key,
     required Color color,
     required this.width,
     required this.onColorChanged,
-    required this.onColorChangeEnd, // Make this required
+    required this.onColorChangeEnd,
     this.textStyle = const TextStyle(fontSize: 16),
-  }) : hsvColor = HSVColor.fromColor(color),
-       super(key: key);
+  }) : hsvColor = HSVColor.fromColor(color);
 
   @override
   State<CustomHuePicker> createState() => _CustomHuePickerState();
@@ -165,7 +159,7 @@ class _CustomHuePickerState extends State<CustomHuePicker> {
         ),
         const SizedBox(height: 4),
         Text(
-          'R: ${_color.red}, G: ${_color.green}, B: ${_color.blue}',
+          'R: ${(_color.r * 255).round()}, G: ${(_color.g * 255).round()}, B: ${(_color.b * 255).round()}',
           style: widget.textStyle,
         ),
       ],
@@ -212,7 +206,7 @@ class HUEColorWheelPainter extends CustomPainter {
     canvas.drawCircle(
       center,
       radio,
-      Paint()..color = Colors.black.withOpacity(1 - hsvColor.value),
+      Paint()..color = Colors.black.withValues(alpha: 1 - hsvColor.value),
     );
 
     canvas.drawCircle(
@@ -239,11 +233,9 @@ class HUEColorWheelPainter extends CustomPainter {
 }
 
 bool useWhiteForeground(Color backgroundColor, {double bias = 0.0}) {
-  int v =
-      sqrt(
-        pow(backgroundColor.red, 2) * 0.299 +
-            pow(backgroundColor.green, 2) * 0.587 +
-            pow(backgroundColor.blue, 2) * 0.114,
-      ).round();
-  return v < 130 + bias ? true : false;
+  final r = (backgroundColor.r * 255).round();
+  final g = (backgroundColor.g * 255).round();
+  final b = (backgroundColor.b * 255).round();
+  int v = sqrt(pow(r, 2) * 0.299 + pow(g, 2) * 0.587 + pow(b, 2) * 0.114).round();
+  return v < 130 + bias;
 }

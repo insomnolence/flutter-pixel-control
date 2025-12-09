@@ -18,7 +18,7 @@ class AppColors {
   
   // LED-specific utility methods
   static int colorToRGB24(Color color) {
-    return (color.red << 16) | (color.green << 8) | color.blue;
+    return ((color.r * 255).round() << 16) | ((color.g * 255).round() << 8) | (color.b * 255).round();
   }
   
   static String colorToHex(Color color) {

@@ -8,7 +8,8 @@ class ConnectionAnalytics {
   final String deviceName;
   final int signalStrength;
   final Duration connectionTime;
-  @Deprecated('Use connectionQuality instead - reconnectionAttempts is misleading with enhanced monitoring')
+  /// Legacy field - kept for backward compatibility with stored sessions.
+  /// New code should use connectionQuality instead.
   final int reconnectionAttempts;
   final List<String> errors;
   final double batteryLevel;
@@ -35,7 +36,7 @@ class ConnectionAnalytics {
     required this.deviceName,
     required this.signalStrength,
     required this.connectionTime,
-    @Deprecated('Use connectionQuality instead') this.reconnectionAttempts = 0,
+    this.reconnectionAttempts = 0,
     this.errors = const [],
     this.batteryLevel = -1,
     this.packetsTransmitted = 0,

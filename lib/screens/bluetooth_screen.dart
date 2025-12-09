@@ -5,6 +5,7 @@ import 'package:pixel_lights/view_models/pixel_lights_view_model.dart';
 import 'package:pixel_lights/screens/background.dart';
 import 'package:pixel_lights/widgets/ble_device_list.dart';
 import 'package:pixel_lights/models/ble_connection_state.dart';
+import 'package:pixel_lights/core/utils/ble_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pixel_lights/models/connection_analytics.dart';
@@ -59,6 +60,40 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
     // Listen for changes in the search box
     _searchController.addListener(_onSearchChanged);
+
+    // Set up callback for root transfer (BLE displacement) notifications
+    _viewModel.onRootTransferred = (message) {
+      if (!mounted) return;
+      _showRootTransferredDialog(message);
+    };
+  }
+
+  /// Show dialog when another device takes over control
+  void _showRootTransferredDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.swap_horiz, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Control Transferred'),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -67,6 +102,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     _isScanningSubscription?.cancel();
     _searchController.removeListener(_onSearchChanged); // Remove listener
     _searchController.dispose(); // Dispose controller
+    _viewModel.onRootTransferred = null; // Clear callback
     super.dispose();
   }
 
@@ -232,7 +268,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         builder: (context, scrollController) => Card(
           elevation: 8,
           margin: const EdgeInsets.only(top: 50),
-          color: Colors.black.withOpacity(0.9),
+          color: Colors.black.withValues(alpha: 0.9),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             side: BorderSide(color: Colors.white24, width: 1),
@@ -246,7 +282,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                     ),
                   ),
                   child: Row(
@@ -256,14 +292,14 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         children: [
                           Icon(
                             Icons.analytics,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             size: 24,
                           ),
                           const SizedBox(width: 12),
                           Text(
                             "CONNECTION ANALYTICS",
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.2,
@@ -272,7 +308,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ],
                       ),
                       IconButton(
-                        icon: Icon(Icons.close, color: Colors.white.withOpacity(0.7)),
+                        icon: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.7)),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -356,218 +392,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
 
-  /// ESP32 mesh network analytics tab with real-time data
-  Widget _buildMeshTab(PixelLightsViewModel viewModel) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: StreamBuilder<ConnectionAnalytics?>(
-        stream: viewModel.currentSessionMetrics,
-        initialData: viewModel.currentAnalytics,
-        builder: (context, snapshot) {
-          final analytics = snapshot.data;
-          final hasMeshData = analytics?.hasMeshAnalytics ?? false;
-          final isConnected = analytics != null && analytics.deviceId.isNotEmpty;
-          
-          if (!hasMeshData && !isConnected) {
-            // Not connected to any device
-            return Column(
-              children: [
-                _buildAnalyticsCard(
-                  "Network Health",
-                  "--",
-                  "Not connected",
-                  Colors.grey,
-                ),
-                _buildAnalyticsCard(
-                  "Active Neighbors",
-                  "--", 
-                  "Not connected",
-                  Colors.grey,
-                ),
-                _buildAnalyticsCard(
-                  "Mesh Success Rate",
-                  "--",
-                  "Not connected", 
-                  Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.orange.shade300, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Connect to ESP32 with mesh health support to view real-time mesh analytics",
-                          style: TextStyle(
-                            color: Colors.orange.shade100,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          } else if (!hasMeshData && isConnected) {
-            // Connected but waiting for ESP32 health data
-            return Column(
-              children: [
-                _buildAnalyticsCard(
-                  "Network Health",
-                  "⏳",
-                  "Waiting for ESP32 data...",
-                  Colors.blue,
-                ),
-                _buildAnalyticsCard(
-                  "Active Neighbors", 
-                  "⏳",
-                  "Waiting for ESP32 data...",
-                  Colors.blue,
-                ),
-                _buildAnalyticsCard(
-                  "Mesh Success Rate",
-                  "⏳",
-                  "Waiting for ESP32 data...",
-                  Colors.blue,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.blue.shade300,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Connected to ESP32 • Waiting for mesh health data (sent every 10 seconds)",
-                          style: TextStyle(
-                            color: Colors.blue.shade100,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-          
-          // Display real ESP32 mesh analytics
-          final healthScore = analytics!.meshHealthScore ?? 0;
-          final neighbors = analytics.meshNeighbors ?? 0;
-          final successRate = analytics.meshSuccessRate ?? 0;
-          final rssi = analytics.meshRSSI ?? -70;
-          final uptime = analytics.meshUptimeHours ?? 0;
-          final role = analytics.meshRoleDescription;
-          
-          // Determine health color based on score
-          Color healthColor;
-          String healthDescription;
-          if (healthScore >= 80) {
-            healthColor = Colors.green;
-            healthDescription = "Excellent mesh performance";
-          } else if (healthScore >= 60) {
-            healthColor = Colors.blue;
-            healthDescription = "Good mesh performance";
-          } else if (healthScore >= 40) {
-            healthColor = Colors.orange;
-            healthDescription = "Fair mesh performance";
-          } else {
-            healthColor = Colors.red;
-            healthDescription = "Poor mesh performance";
-          }
-          
-          return Column(
-            children: [
-              _buildAnalyticsCard(
-                "Network Health",
-                "${healthScore}%",
-                healthDescription,
-                healthColor,
-              ),
-              _buildAnalyticsCard(
-                "Active Neighbors",
-                "$neighbors",
-                neighbors == 1 ? "ESP32 node in range" : "ESP32 nodes in range",
-                Colors.blue,
-              ),
-              _buildAnalyticsCard(
-                "Mesh Success Rate",
-                "${successRate}%",
-                "Network packet delivery",
-                successRate >= 90 ? Colors.green : successRate >= 70 ? Colors.orange : Colors.red,
-              ),
-              _buildAnalyticsCard(
-                "Signal Strength",
-                "${rssi}dBm",
-                "Average mesh RSSI",
-                rssi > -60 ? Colors.green : rssi > -80 ? Colors.orange : Colors.red,
-              ),
-              _buildAnalyticsCard(
-                "Uptime",
-                "${uptime}h",
-                "ESP32 system uptime",
-                Colors.purple,
-              ),
-              _buildAnalyticsCard(
-                "Mesh Role",
-                role,
-                "Current network role",
-                Colors.indigo,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green.shade300, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Real-time ESP32 mesh analytics active • Updates every 60 seconds",
-                        style: TextStyle(
-                          color: Colors.green.shade100,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-
+  /// Analytics card with Card-based styling (used in connection info section)
   Widget _buildAnalyticsCard(String title, String value, String subtitle, Color color) {
     return Card(
       color: const Color(0xFF424242), // Explicit dark background
@@ -627,10 +452,10 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     return Card(
       elevation: 8,
       margin: EdgeInsets.zero,
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -666,14 +491,14 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       children: [
         Icon(
           Icons.bluetooth,
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           size: 24,
         ),
         const SizedBox(width: 12),
         Text(
           'BLUETOOTH CONNECTION',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             fontSize: 18,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
@@ -681,12 +506,12 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         ),
         const Spacer(),
         IconButton(
-          icon: Icon(Icons.analytics, color: Colors.white.withOpacity(0.7)),
+          icon: Icon(Icons.analytics, color: Colors.white.withValues(alpha: 0.7)),
           onPressed: () => _showAnalytics(context, viewModel),
           tooltip: "View Analytics",
         ),
         IconButton(
-          icon: Icon(Icons.auto_fix_high, color: Colors.white.withOpacity(0.7)),
+          icon: Icon(Icons.auto_fix_high, color: Colors.white.withValues(alpha: 0.7)),
           onPressed: () => _startAutoConnect(viewModel),
           tooltip: "Auto Connect",
         ),
@@ -698,9 +523,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   Widget _buildEnhancedSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: TextField(
         controller: _searchController,
@@ -708,13 +533,13 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         cursorColor: Colors.white,
         decoration: InputDecoration(
           labelText: 'Search devices...',
-          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+          labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
           hintText: 'ESP32, Pixel, LED...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-          prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7)),
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7)),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear, color: Colors.white.withOpacity(0.7)),
+                  icon: Icon(Icons.clear, color: Colors.white.withValues(alpha: 0.7)),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -952,12 +777,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
 
-  /// Convert RSSI to percentage (rough approximation)
-  double _getSignalStrengthPercentage(int rssi) {
-    if (rssi >= -50) return 100;
-    if (rssi <= -100) return 0;
-    return ((rssi + 100) * 2).toDouble();
-  }
+  /// Convert RSSI to percentage
+  double _getSignalStrengthPercentage(int rssi) => rssiToPercentage(rssi);
 
 
   /// Format duration for display
@@ -1030,9 +851,9 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -1078,9 +899,9 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -1179,9 +1000,9 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -1206,16 +1027,17 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
     );
   }
 
-  /// Build analytics card helper method
+  /// Analytics card with accent border styling (used in mesh analytics tab)
+  /// Note: Intentionally different visual style from _BluetoothScreenState._buildAnalyticsCard
   Widget _buildAnalyticsCard(String title, String value, String subtitle, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1237,7 +1059,7 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1255,7 +1077,7 @@ class _MeshTabWidgetState extends State<_MeshTabWidget>
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 10,
                   ),
                 ),

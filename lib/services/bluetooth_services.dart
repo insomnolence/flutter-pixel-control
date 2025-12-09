@@ -5,11 +5,37 @@ import 'dart:typed_data';
 import 'package:pixel_lights/models/packet.dart';
 import 'package:pixel_lights/models/ble_connection_state.dart';
 
+/// Event types for ESP32 notifications
+enum Esp32NotificationType {
+  rootTransferred,  // Another node took over as BLE root (0xFE, 0x01)
+  unknown,
+}
+
+/// Notification event from ESP32
+class Esp32Notification {
+  final Esp32NotificationType type;
+  final List<int> rawData;
+
+  Esp32Notification({required this.type, required this.rawData});
+
+  /// Parse notification data from ESP32
+  factory Esp32Notification.fromData(List<int> data) {
+    if (data.length >= 2 && data[0] == 0xFE) {
+      switch (data[1]) {
+        case 0x01:
+          return Esp32Notification(type: Esp32NotificationType.rootTransferred, rawData: data);
+      }
+    }
+    return Esp32Notification(type: Esp32NotificationType.unknown, rawData: data);
+  }
+}
+
 abstract class IBluetoothService {
   Stream<List<ScanResult>> get scanResults;
   Stream<BluetoothConnectionState> connectionState(BluetoothDevice device);
   Stream<BleConnectionState> get enhancedConnectionStateStream;
   Stream<Map<String, dynamic>> get healthDataStream;
+  Stream<Esp32Notification> get esp32NotificationStream;
   BleConnectionState get currentConnectionState;
   Future<bool> get isAvailable;
   Future<void> startScan({Duration? timeout});
@@ -20,7 +46,7 @@ abstract class IBluetoothService {
   Future<BluetoothCharacteristic?> discoverTxCharacteristic(
     BluetoothDevice device,
   );
-  Future<void> writeCharacteristic(
+  Future<bool> writeCharacteristic(
     BluetoothCharacteristic? gattChar,
     Packet packet,
   );
@@ -37,11 +63,13 @@ abstract class IBluetoothService {
 class PixelBluetoothService implements IBluetoothService {
   final StreamController<bool> _isScanningController =
       StreamController<bool>.broadcast();
-  final StreamController<BleConnectionState> _enhancedConnectionStateController = 
+  final StreamController<BleConnectionState> _enhancedConnectionStateController =
       StreamController<BleConnectionState>.broadcast();
-  final StreamController<Map<String, dynamic>> _healthDataController = 
+  final StreamController<Map<String, dynamic>> _healthDataController =
       StreamController<Map<String, dynamic>>.broadcast();
-  
+  final StreamController<Esp32Notification> _esp32NotificationController =
+      StreamController<Esp32Notification>.broadcast();
+
   Timer? _scanTimer;
   Timer? _connectionTimeout;
   BleConnectionState _currentState = BleConnectionState.idle();
@@ -49,25 +77,28 @@ class PixelBluetoothService implements IBluetoothService {
   String? _lastConnectedDeviceId;
   BluetoothCharacteristic? _healthCharacteristic;
   StreamSubscription<List<int>>? _healthSubscription;
-  
+
+  // TX characteristic for receiving ESP32 notifications (root transfer, etc.)
+  BluetoothCharacteristic? _txCharacteristic;
+  StreamSubscription<List<int>>? _txNotificationSubscription;
+
   // Enhanced connection monitoring
   StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
   Timer? _connectionDebounceTimer;
   Timer? _healthDataWatchdog;
   DateTime? _lastHealthDataReceived;
-
-  // *** CRUCIAL: Double-Check These UUIDs ***
-  // These are the ones that MUST match the ones in the ESP32 code *exactly*.
-  static const String UART_SERVICE =
-      "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; // Example
-  static const String UART_TX =
-      "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Example
   
-  // ESP32 Health Analytics Service UUIDs (must match ESP32 firmware)
-  static const String HEALTH_SERVICE = 
-      "12345678-1234-1234-1234-123456789abc";
-  static const String HEALTH_CHARACTERISTIC = 
-      "87654321-4321-4321-4321-cba987654321";
+  // Cache discovered services to avoid calling discoverServices() multiple times
+  List<BluetoothService>? _cachedServices;
+
+  // BLE UUIDs - Must match ESP32 firmware exactly (verified against esp32-firmware/main/main.cpp)
+  // UART Service: Nordic UART Service (NUS) standard for BLE serial communication
+  static const String UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+  static const String UART_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+  
+  // Health Analytics Service: Custom UUIDs for ESP32 mesh network health monitoring
+  static const String HEALTH_SERVICE = "12345678-1234-1234-1234-123456789abc";
+  static const String HEALTH_CHARACTERISTIC = "87654321-4321-4321-4321-cba987654321";
 
   static const int DEFAULT_CHUNK_SIZE = 20;
   int maxChunkSize = DEFAULT_CHUNK_SIZE;
@@ -84,6 +115,9 @@ class PixelBluetoothService implements IBluetoothService {
   Stream<Map<String, dynamic>> get healthDataStream => _healthDataController.stream;
 
   @override
+  Stream<Esp32Notification> get esp32NotificationStream => _esp32NotificationController.stream;
+
+  @override
   BleConnectionState get currentConnectionState => _currentState;
 
   @override
@@ -94,7 +128,7 @@ class PixelBluetoothService implements IBluetoothService {
       device.connectionState;
 
   @override
-  Future<bool> get isAvailable => FlutterBluePlus.isAvailable;
+  Future<bool> get isAvailable => FlutterBluePlus.isSupported;
 
   void enableVerboseLogs() async {
     await FlutterBluePlus.setLogLevel(LogLevel.verbose);
@@ -139,12 +173,24 @@ class PixelBluetoothService implements IBluetoothService {
   Future<bool> connect(BluetoothDevice device) async {
     try {
       await device.connect(license: License.free);
-      // Wait for the connection to complete, or timeout.
+      // Wait for the connection to complete, or timeout after 15 seconds.
       await device.connectionState.firstWhere(
         (state) => state == BluetoothConnectionState.connected,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint("Connection timeout: Device did not connect within 15 seconds");
+          throw TimeoutException("Connection timed out after 15 seconds");
+        },
       );
       debugPrint("Connected to device: ${device.platformName}");
       return true; // Return true when connection is successful.
+    } on TimeoutException catch (e) {
+      debugPrint("Connection timeout: $e");
+      try {
+        await device.disconnect();
+      } catch (_) {}
+      return false;
     } on FlutterBluePlusException catch (e) {
       debugPrint("FlutterBluePlusException Error connecting: $e");
       return false; // return false if there's an error.
@@ -160,20 +206,28 @@ class PixelBluetoothService implements IBluetoothService {
       // Stop enhanced monitoring
       _stopConnectionMonitoring();
       _stopHealthDataWatchdog();
-      
-      // Unsubscribe from health updates before disconnecting
+
+      // Unsubscribe from all notifications before disconnecting
       _unsubscribeFromHealth();
+      _unsubscribeFromTxNotifications();
       
+      // Clear cached services
+      _cachedServices = null;
+      _healthSubscriptionRetryCount = 0;
+
       await device.disconnect();
       // Update enhanced connection state to trigger analytics cleanup
       _updateConnectionState(BleConnectionState.disconnected());
-      
+
       debugPrint("✅ Clean disconnection from ${device.platformName}");
     } catch (e) {
       debugPrint("Error disconnecting: $e");
       // Still update state and cleanup even if disconnect fails
       _stopConnectionMonitoring();
       _stopHealthDataWatchdog();
+      _unsubscribeFromTxNotifications();
+      _cachedServices = null;
+      _healthSubscriptionRetryCount = 0;
       _updateConnectionState(BleConnectionState.disconnected());
     }
   }
@@ -214,6 +268,9 @@ class PixelBluetoothService implements IBluetoothService {
         );
         return null;
       }
+      
+      // Cache services for later use (e.g., health characteristic discovery)
+      _cachedServices = services;
 
       // Debugging prints
       debugPrint("Discovered Services:");
@@ -272,6 +329,10 @@ class PixelBluetoothService implements IBluetoothService {
       if (txCharacteristic != null) {
         debugPrint("Found TX Characteristic!");
         updateMaxChunkSize(txCharacteristic);
+
+        // Store and subscribe to TX notifications for ESP32 events (root transfer, etc.)
+        _txCharacteristic = txCharacteristic;
+        await _subscribeToTxNotifications();
       } else {
         debugPrint("PixelBluetoothService: TX Characteristic not found");
       }
@@ -292,19 +353,19 @@ class PixelBluetoothService implements IBluetoothService {
   }
 
   @override
-  Future<void> writeCharacteristic(
+  Future<bool> writeCharacteristic(
     BluetoothCharacteristic? gattChar,
     Packet packet,
   ) async {
     if (gattChar == null) {
       debugPrint("BluetoothPacketSender: Tx Characteristic not found");
-      return;
+      return false;
     }
     if (!gattChar.properties.writeWithoutResponse) {
       debugPrint(
         "PixelBluetoothService: TX characteristic does not support write without response.",
       );
-      return;
+      return false;
     }
     Uint8List? bytesToSend = packet.createBytes();
     int bytesToSendPosition = 0;
@@ -360,8 +421,10 @@ class PixelBluetoothService implements IBluetoothService {
     // The new way to set the characteristic value:
     try {
       await gattChar.write(sendByte, withoutResponse: true);
+      return true;
     } catch (e) {
       debugPrint("Error writing characteristic: $e");
+      return false;
     }
   }
 
@@ -392,6 +455,8 @@ class PixelBluetoothService implements IBluetoothService {
   }) async {
     _preferredDeviceName = preferredDeviceName;
     
+    StreamSubscription<List<ScanResult>>? scanSubscription;
+    
     try {
       // Phase 1: Start scanning
       _updateConnectionState(BleConnectionState.scanning(
@@ -402,9 +467,11 @@ class PixelBluetoothService implements IBluetoothService {
       
       // Phase 2: Monitor scan results for preferred device
       final deviceCompleter = Completer<BluetoothDevice>();
-      late StreamSubscription scanSubscription;
       
       scanSubscription = scanResults.listen((results) {
+        // Guard against double-completion if multiple devices match
+        if (deviceCompleter.isCompleted) return;
+        
         for (var result in results) {
           if (_shouldAutoConnectToDevice(result)) {
             _updateConnectionState(BleConnectionState.deviceFound(
@@ -413,7 +480,6 @@ class PixelBluetoothService implements IBluetoothService {
             ));
             
             deviceCompleter.complete(result.device);
-            scanSubscription.cancel();
             return;
           }
         }
@@ -421,19 +487,21 @@ class PixelBluetoothService implements IBluetoothService {
       
       // Wait for device or timeout
       final device = await deviceCompleter.future.timeout(scanTimeout);
-      await stopScan();
       
       // Phase 3: Connect to device
       return await _performAutoConnect(device, connectionTimeout);
       
     } catch (e) {
-      await stopScan();
       _updateConnectionState(BleConnectionState.error(
         message: "Auto-connect failed: ${e.toString()}",
         errorCode: "AUTO_CONNECT_FAILED",
         canRetry: true,
       ));
       return false;
+    } finally {
+      // Ensure subscription is always cleaned up
+      await scanSubscription?.cancel();
+      await stopScan();
     }
   }
 
@@ -471,12 +539,16 @@ class PixelBluetoothService implements IBluetoothService {
       _updateConnectionState(BleConnectionState.connecting(device: device));
       
       _connectionTimeout = Timer(timeout, () {
-        _updateConnectionState(BleConnectionState.error(
-          device: device,
-          message: "Connection timeout",
-          errorCode: "CONNECTION_TIMEOUT",
-          canRetry: true,
-        ));
+        // Only set error if still in connecting state (avoid race with successful connection)
+        if (_currentState.phase == BleConnectionPhase.connecting ||
+            _currentState.phase == BleConnectionPhase.discoveringServices) {
+          _updateConnectionState(BleConnectionState.error(
+            device: device,
+            message: "Connection timeout",
+            errorCode: "CONNECTION_TIMEOUT",
+            canRetry: true,
+          ));
+        }
       });
       
       final connected = await connect(device);
@@ -564,14 +636,20 @@ class PixelBluetoothService implements IBluetoothService {
   }
 
   /// Discover ESP32 health characteristic for mesh analytics
+  /// Uses cached services if available to avoid redundant discoverServices() calls
   Future<BluetoothCharacteristic?> discoverHealthCharacteristic(BluetoothDevice device) async {
     try {
-      final services = await device.discoverServices();
+      // Use cached services if available, otherwise discover
+      final services = _cachedServices ?? await device.discoverServices();
       
-      // DEBUG: Log all discovered services
-      debugPrint("PixelBluetoothService: Discovered ${services.length} services:");
-      for (BluetoothService service in services) {
-        debugPrint("  Service UUID: ${service.uuid.toString().toLowerCase()}");
+      // DEBUG: Log services (only if we had to discover them fresh)
+      if (_cachedServices == null) {
+        debugPrint("PixelBluetoothService: Discovered ${services.length} services:");
+        for (BluetoothService service in services) {
+          debugPrint("  Service UUID: ${service.uuid.toString().toLowerCase()}");
+        }
+      } else {
+        debugPrint("PixelBluetoothService: Using cached services (${services.length} services)");
       }
       debugPrint("PixelBluetoothService: Looking for health service: ${HEALTH_SERVICE.toLowerCase()}");
       
@@ -618,7 +696,74 @@ class PixelBluetoothService implements IBluetoothService {
     await _subscribeToHealthWithRecovery();
     _startHealthDataWatchdog();
   }
+
+  /// Subscribe to TX characteristic for ESP32 notifications (root transfer, etc.)
+  Future<void> _subscribeToTxNotifications() async {
+    if (_txCharacteristic == null) {
+      debugPrint("PixelBluetoothService: No TX characteristic to subscribe to for notifications");
+      return;
+    }
+
+    // Check if the TX characteristic supports notifications
+    if (!_txCharacteristic!.properties.notify) {
+      debugPrint("PixelBluetoothService: TX characteristic does not support notifications");
+      return;
+    }
+
+    try {
+      // Enable notifications on TX characteristic
+      await _txCharacteristic!.setNotifyValue(true);
+
+      // Cancel existing subscription
+      _txNotificationSubscription?.cancel();
+
+      // Subscribe to TX notifications
+      _txNotificationSubscription = _txCharacteristic!.lastValueStream.listen(
+        (data) {
+          debugPrint("📥 Received ESP32 notification: ${data.map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(', ')}");
+          _parseEsp32Notification(data);
+        },
+        onError: (error) {
+          debugPrint("🔶 TX notification subscription error: $error");
+        },
+        cancelOnError: false,
+      );
+
+      debugPrint("✅ PixelBluetoothService: Subscribed to TX notifications for ESP32 events");
+    } catch (e) {
+      debugPrint("❌ Error subscribing to TX notifications: $e");
+    }
+  }
+
+  /// Parse and handle ESP32 notification data
+  void _parseEsp32Notification(List<int> data) {
+    if (data.isEmpty) return;
+
+    final notification = Esp32Notification.fromData(data);
+
+    switch (notification.type) {
+      case Esp32NotificationType.rootTransferred:
+        debugPrint("🔄 ESP32: Root transferred to another node - disconnection imminent");
+        _esp32NotificationController.add(notification);
+        break;
+      case Esp32NotificationType.unknown:
+        // Ignore unknown notifications (could be other data)
+        debugPrint("📥 ESP32: Unknown notification type, ignoring");
+        break;
+    }
+  }
+
+  /// Unsubscribe from TX notifications
+  void _unsubscribeFromTxNotifications() {
+    _txNotificationSubscription?.cancel();
+    _txNotificationSubscription = null;
+    _txCharacteristic = null;
+  }
   
+  // Track health subscription retry attempts
+  int _healthSubscriptionRetryCount = 0;
+  static const int _maxHealthSubscriptionRetries = 3;
+
   /// Internal health subscription with recovery capability
   Future<void> _subscribeToHealthWithRecovery() async {
     if (_healthCharacteristic == null) {
@@ -627,6 +772,9 @@ class PixelBluetoothService implements IBluetoothService {
     }
     
     try {
+      // Reset retry count on successful setup
+      _healthSubscriptionRetryCount = 0;
+      
       // Enable notifications
       await _healthCharacteristic!.setNotifyValue(true);
       
@@ -639,15 +787,19 @@ class PixelBluetoothService implements IBluetoothService {
           .listen(
         (data) {
           _lastHealthDataReceived = DateTime.now();
+          _healthSubscriptionRetryCount = 0; // Reset on successful data
           _parseHealthData(data);
         },
         onError: (error) async {
           debugPrint("🔶 Health subscription lost: $error");
-          // Auto-recover if still connected
-          if (_currentState.isConnected) {
+          // Auto-recover if still connected and under retry limit
+          if (_currentState.isConnected && _healthSubscriptionRetryCount < _maxHealthSubscriptionRetries) {
+            _healthSubscriptionRetryCount++;
+            debugPrint("🔄 Recovering health subscription (attempt $_healthSubscriptionRetryCount/$_maxHealthSubscriptionRetries)...");
             await Future.delayed(Duration(seconds: 2));
-            debugPrint("🔄 Recovering health subscription...");
             await _subscribeToHealthWithRecovery();
+          } else if (_healthSubscriptionRetryCount >= _maxHealthSubscriptionRetries) {
+            debugPrint("❌ Health subscription recovery failed after $_maxHealthSubscriptionRetries attempts");
           }
         },
         cancelOnError: false, // Keep trying to reconnect
@@ -656,11 +808,14 @@ class PixelBluetoothService implements IBluetoothService {
       debugPrint("✅ PixelBluetoothService: Subscribed to ESP32 health updates");
     } catch (e) {
       debugPrint("❌ Error subscribing to health updates: $e");
-      // Retry after delay if still connected
-      if (_currentState.isConnected) {
+      // Retry after delay if still connected and under retry limit
+      if (_currentState.isConnected && _healthSubscriptionRetryCount < _maxHealthSubscriptionRetries) {
+        _healthSubscriptionRetryCount++;
+        debugPrint("🔄 Retrying health subscription (attempt $_healthSubscriptionRetryCount/$_maxHealthSubscriptionRetries)...");
         await Future.delayed(Duration(seconds: 5));
-        debugPrint("🔄 Retrying health subscription...");
         await _subscribeToHealthWithRecovery();
+      } else if (_healthSubscriptionRetryCount >= _maxHealthSubscriptionRetries) {
+        debugPrint("❌ Health subscription failed after $_maxHealthSubscriptionRetries attempts");
       }
     }
   }
@@ -807,9 +962,11 @@ class PixelBluetoothService implements IBluetoothService {
     _stopConnectionMonitoring();
     _stopHealthDataWatchdog();
     _unsubscribeFromHealth();
+    _unsubscribeFromTxNotifications();
     _isScanningController.close();
     _enhancedConnectionStateController.close();
     _healthDataController.close();
+    _esp32NotificationController.close();
     debugPrint("🧹 PixelBluetoothService disposed with full cleanup");
   }
 }

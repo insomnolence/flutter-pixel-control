@@ -5,6 +5,7 @@ import 'package:pixel_lights/screens/manual_screen.dart';
 import 'package:pixel_lights/screens/presets_screen.dart';
 import 'package:pixel_lights/services/bluetooth_services.dart';
 import 'package:pixel_lights/view_models/pixel_lights_view_model.dart';
+import 'package:pixel_lights/widgets/styled_snack_bar.dart';
 import 'package:provider/provider.dart';
 
 // Smart PageView that can disable scrolling for protected gesture zones
@@ -154,10 +155,29 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    
+    // Set up write error callback after first frame to ensure context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<PixelLightsViewModel>();
+      viewModel.onWriteError = _showWriteErrorSnackBar;
+    });
+  }
+
+  void _showWriteErrorSnackBar(String message) {
+    if (!mounted) return;
+    showStyledSnackBar(
+      context,
+      message: message,
+      icon: Icons.error_outline,
+      backgroundColor: Colors.red[700],
+    );
   }
 
   @override
   void dispose() {
+    // Clear the callback before disposing
+    final viewModel = context.read<PixelLightsViewModel>();
+    viewModel.onWriteError = null;
     _pageController.dispose();
     super.dispose();
   }
