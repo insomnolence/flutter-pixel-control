@@ -321,7 +321,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   unselectedLabelColor: Colors.white60,
                   indicatorColor: Colors.blue,
                   tabs: [
-                    Tab(icon: Icon(Icons.speed), text: "Performance"),
+                    Tab(icon: Icon(Icons.analytics), text: "Device Stats"),
                     Tab(icon: Icon(Icons.hub), text: "Mesh Network"),
                   ],
                 ),
@@ -330,7 +330,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _buildPerformanceTab(viewModel),
+                      _buildDeviceStatsTab(viewModel),
                       _MeshTabWidget(viewModel: viewModel),
                     ],
                   ),
@@ -343,8 +343,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
 
-  /// Consolidated Performance tab (replaces BLE + System tabs)
-  Widget _buildPerformanceTab(PixelLightsViewModel viewModel) {
+  /// Device Stats tab - shows connection quality, signal, and session metrics
+  Widget _buildDeviceStatsTab(PixelLightsViewModel viewModel) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -595,7 +595,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     );
   }
   
-  /// Helper color functions for Performance tab
+  /// Helper color functions for Device Stats tab
   Color _getStabilityColor(double score) {
     if (score >= 90) return Colors.green;
     if (score >= 70) return Colors.lightGreen;
@@ -663,6 +663,10 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                           ),
                           const SizedBox(height: 4),
                           _buildSignalStrengthRow(viewModel.currentAnalytics?.signalStrength ?? -70),
+                          if ((viewModel.currentAnalytics?.batteryLevel ?? -1) >= 0) ...[
+                            const SizedBox(height: 4),
+                            _buildBatteryLevelRow(viewModel.currentAnalytics!.batteryLevel.toInt()),
+                          ],
                         ] else
                           Text(
                             viewModel.connectionState.message ?? "Establishing connection...",
@@ -780,6 +784,50 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   /// Convert RSSI to percentage
   double _getSignalStrengthPercentage(int rssi) => rssiToPercentage(rssi);
 
+  /// Battery level indicator row for the connection card
+  Widget _buildBatteryLevelRow(int batteryLevel) {
+    final batteryColor = batteryLevel > 50 ? Colors.green :
+                        batteryLevel > 20 ? Colors.orange : Colors.red;
+
+    // Determine battery icon based on level
+    IconData batteryIcon;
+    if (batteryLevel > 87) {
+      batteryIcon = Icons.battery_full;
+    } else if (batteryLevel > 62) {
+      batteryIcon = Icons.battery_6_bar;
+    } else if (batteryLevel > 50) {
+      batteryIcon = Icons.battery_5_bar;
+    } else if (batteryLevel > 37) {
+      batteryIcon = Icons.battery_4_bar;
+    } else if (batteryLevel > 25) {
+      batteryIcon = Icons.battery_3_bar;
+    } else if (batteryLevel > 12) {
+      batteryIcon = Icons.battery_2_bar;
+    } else if (batteryLevel > 5) {
+      batteryIcon = Icons.battery_1_bar;
+    } else {
+      batteryIcon = Icons.battery_0_bar;
+    }
+
+    return Row(
+      children: [
+        Icon(
+          batteryIcon,
+          size: 18,
+          color: batteryColor,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          "$batteryLevel%",
+          style: TextStyle(
+            fontSize: 12,
+            color: batteryColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 
   /// Format duration for display
   String _formatDuration(Duration duration) {

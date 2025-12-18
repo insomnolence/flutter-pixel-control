@@ -35,6 +35,10 @@ class AnalyticsService {
   Map<String, dynamic>? _latestHealthData;
   StreamSubscription<Map<String, dynamic>>? _healthSubscription;
 
+  // Battery level monitoring
+  int? _latestBatteryLevel;
+  StreamSubscription<int>? _batterySubscription;
+
   /// Stream of current session metrics (updates every 5 seconds)
   Stream<ConnectionAnalytics?> get currentSessionMetrics => 
       _currentMetricsController.stream;
@@ -59,6 +63,7 @@ class AnalyticsService {
     if (differentDevice) {
       await endSession(); // End session for different device
       _latestHealthData = null; // Clear health data only for new device
+      _latestBatteryLevel = null; // Clear battery level for new device
     } else {
       // Same device - preserve health data but restart session tracking
       _stopMetricsTimer(); // Stop existing timer
@@ -84,6 +89,11 @@ class AnalyticsService {
     // Subscribe to ESP32 health data if available (and not already subscribed)
     if (bluetoothService != null && _healthSubscription == null) {
       _subscribeToHealthData(bluetoothService);
+    }
+
+    // Subscribe to battery level updates if available (and not already subscribed)
+    if (bluetoothService != null && _batterySubscription == null) {
+      _subscribeToBatteryData(bluetoothService);
     }
     
     debugPrint("AnalyticsService: Started session for ${device.platformName} (same device: ${!differentDevice})");
@@ -178,16 +188,18 @@ class AnalyticsService {
     
     _stopMetricsTimer();
     _unsubscribeFromHealthData();
+    _unsubscribeFromBatteryData();
     _sessionStart = null;
     _connectionStart = null;
     _currentDevice = null;
-    
-    // Only clear health data if explicitly requested (true disconnection)
+
+    // Only clear health/battery data if explicitly requested (true disconnection)
     if (clearHealthData) {
       _latestHealthData = null;
-      debugPrint("AnalyticsService: Cleared health data (full disconnection)");
+      _latestBatteryLevel = null;
+      debugPrint("AnalyticsService: Cleared health and battery data (full disconnection)");
     } else {
-      debugPrint("AnalyticsService: Preserved health data (temporary state change)");
+      debugPrint("AnalyticsService: Preserved health and battery data (temporary state change)");
     }
     
     // *** CRITICAL FIX: Emit null to signal UI should clear analytics ***
@@ -224,8 +236,8 @@ class AnalyticsService {
     return ConnectionAnalytics(
       timestamp: now,
       deviceId: _currentDevice!.remoteId.str,
-      deviceName: _currentDevice!.platformName.isNotEmpty 
-          ? _currentDevice!.platformName 
+      deviceName: _currentDevice!.platformName.isNotEmpty
+          ? _currentDevice!.platformName
           : "Unknown Device",
       signalStrength: _lastSignalStrength,
       connectionTime: connectionTime,
@@ -237,6 +249,8 @@ class AnalyticsService {
       isCurrentSession: true,
       // Enhanced connection quality
       connectionQuality: connectionQuality,
+      // Battery level (if available, otherwise -1)
+      batteryLevel: _latestBatteryLevel?.toDouble() ?? -1,
       // ESP32 Mesh Health Analytics (if available)
       meshHealthScore: _latestHealthData?['overall_score'],
       meshNeighbors: _latestHealthData?['active_neighbors'],
@@ -394,6 +408,39 @@ class AnalyticsService {
     _healthSubscription?.cancel();
     _healthSubscription = null;
     debugPrint("AnalyticsService: Unsubscribed from ESP32 health data");
+  }
+
+  /// Subscribe to battery level updates
+  void _subscribeToBatteryData(IBluetoothService bluetoothService) {
+    try {
+      _batterySubscription = bluetoothService.batteryLevelStream.listen(
+        (batteryLevel) {
+          _latestBatteryLevel = batteryLevel;
+          debugPrint("AnalyticsService: Received battery level: $batteryLevel%");
+
+          // Immediately emit updated metrics when battery data arrives
+          final metrics = _getCurrentMetrics();
+          if (metrics != null) {
+            _currentMetricsController.add(metrics);
+            debugPrint("AnalyticsService: Emitted immediate metrics update with battery level");
+          }
+        },
+        onError: (error) {
+          debugPrint("AnalyticsService: Battery level stream error: $error");
+        },
+      );
+
+      debugPrint("AnalyticsService: Subscribed to battery level updates");
+    } catch (e) {
+      debugPrint("AnalyticsService: Error subscribing to battery level: $e");
+    }
+  }
+
+  /// Unsubscribe from battery level updates
+  void _unsubscribeFromBatteryData() {
+    _batterySubscription?.cancel();
+    _batterySubscription = null;
+    debugPrint("AnalyticsService: Unsubscribed from battery level updates");
   }
 
   /// Dispose of the service

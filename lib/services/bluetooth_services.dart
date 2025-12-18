@@ -36,6 +36,7 @@ abstract class IBluetoothService {
   Stream<BleConnectionState> get enhancedConnectionStateStream;
   Stream<Map<String, dynamic>> get healthDataStream;
   Stream<Esp32Notification> get esp32NotificationStream;
+  Stream<int> get batteryLevelStream;
   BleConnectionState get currentConnectionState;
   Future<bool> get isAvailable;
   Future<void> startScan({Duration? timeout});
@@ -69,6 +70,8 @@ class PixelBluetoothService implements IBluetoothService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Esp32Notification> _esp32NotificationController =
       StreamController<Esp32Notification>.broadcast();
+  final StreamController<int> _batteryLevelController =
+      StreamController<int>.broadcast();
 
   Timer? _scanTimer;
   Timer? _connectionTimeout;
@@ -77,6 +80,10 @@ class PixelBluetoothService implements IBluetoothService {
   String? _lastConnectedDeviceId;
   BluetoothCharacteristic? _healthCharacteristic;
   StreamSubscription<List<int>>? _healthSubscription;
+
+  // Battery characteristic for receiving battery level updates
+  BluetoothCharacteristic? _batteryCharacteristic;
+  StreamSubscription<List<int>>? _batterySubscription;
 
   // TX characteristic for receiving ESP32 notifications (root transfer, etc.)
   BluetoothCharacteristic? _txCharacteristic;
@@ -100,6 +107,11 @@ class PixelBluetoothService implements IBluetoothService {
   static const String HEALTH_SERVICE = "12345678-1234-1234-1234-123456789abc";
   static const String HEALTH_CHARACTERISTIC = "87654321-4321-4321-4321-cba987654321";
 
+  // Battery Service: Standard BLE Battery Service UUIDs (Bluetooth SIG)
+  // Note: Use short 16-bit UUIDs as flutter_blue_plus returns them in short form
+  static const String BATTERY_SERVICE = "180f";
+  static const String BATTERY_CHARACTERISTIC = "2a19";
+
   static const int DEFAULT_CHUNK_SIZE = 20;
   int maxChunkSize = DEFAULT_CHUNK_SIZE;
   bool _isScanning = false; //add a new variable.
@@ -116,6 +128,9 @@ class PixelBluetoothService implements IBluetoothService {
 
   @override
   Stream<Esp32Notification> get esp32NotificationStream => _esp32NotificationController.stream;
+
+  @override
+  Stream<int> get batteryLevelStream => _batteryLevelController.stream;
 
   @override
   BleConnectionState get currentConnectionState => _currentState;
@@ -209,8 +224,9 @@ class PixelBluetoothService implements IBluetoothService {
 
       // Unsubscribe from all notifications before disconnecting
       _unsubscribeFromHealth();
+      _unsubscribeFromBattery();
       _unsubscribeFromTxNotifications();
-      
+
       // Clear cached services
       _cachedServices = null;
       _healthSubscriptionRetryCount = 0;
@@ -225,6 +241,7 @@ class PixelBluetoothService implements IBluetoothService {
       // Still update state and cleanup even if disconnect fails
       _stopConnectionMonitoring();
       _stopHealthDataWatchdog();
+      _unsubscribeFromBattery();
       _unsubscribeFromTxNotifications();
       _cachedServices = null;
       _healthSubscriptionRetryCount = 0;
@@ -573,7 +590,17 @@ class PixelBluetoothService implements IBluetoothService {
         } else {
           debugPrint("PixelBluetoothService: ESP32 health analytics not available (older firmware?)");
         }
-        
+
+        // Discover battery characteristic for battery level monitoring
+        _batteryCharacteristic = await discoverBatteryCharacteristic(device);
+        if (_batteryCharacteristic != null) {
+          // Subscribe to battery updates
+          await subscribeToBatteryUpdates();
+          debugPrint("PixelBluetoothService: Battery monitoring enabled");
+        } else {
+          debugPrint("PixelBluetoothService: Battery monitoring not available");
+        }
+
         _lastConnectedDeviceId = device.remoteId.str;
         
         // Start enhanced connection monitoring
@@ -695,6 +722,114 @@ class PixelBluetoothService implements IBluetoothService {
   Future<void> subscribeToHealthUpdates() async {
     await _subscribeToHealthWithRecovery();
     _startHealthDataWatchdog();
+  }
+
+  /// Discover ESP32 battery characteristic for battery level monitoring
+  /// Uses cached services if available to avoid redundant discoverServices() calls
+  Future<BluetoothCharacteristic?> discoverBatteryCharacteristic(BluetoothDevice device) async {
+    try {
+      // Use cached services if available, otherwise discover
+      final services = _cachedServices ?? await device.discoverServices();
+
+      debugPrint("PixelBluetoothService: Looking for battery service: ${BATTERY_SERVICE.toLowerCase()}");
+
+      // Find battery service
+      BluetoothService? batteryService;
+      for (BluetoothService service in services) {
+        if (service.uuid.toString().toLowerCase() == BATTERY_SERVICE.toLowerCase()) {
+          batteryService = service;
+          break;
+        }
+      }
+
+      if (batteryService == null) {
+        debugPrint("PixelBluetoothService: Battery service not found");
+        return null;
+      }
+
+      // Find battery characteristic
+      for (BluetoothCharacteristic char in batteryService.characteristics) {
+        if (char.uuid.toString().toLowerCase() == BATTERY_CHARACTERISTIC.toLowerCase()) {
+          debugPrint("PixelBluetoothService: Battery characteristic found!");
+
+          // Check if characteristic supports read or notify
+          if (char.properties.notify || char.properties.read) {
+            return char;
+          } else {
+            debugPrint("PixelBluetoothService: Battery characteristic does not support read or notify.");
+            return null;
+          }
+        }
+      }
+
+      debugPrint("PixelBluetoothService: Battery characteristic not found in service");
+      return null;
+
+    } catch (e) {
+      debugPrint("Error discovering battery characteristic: $e");
+      return null;
+    }
+  }
+
+  /// Subscribe to battery level notifications
+  Future<void> subscribeToBatteryUpdates() async {
+    if (_batteryCharacteristic == null) {
+      debugPrint("PixelBluetoothService: No battery characteristic to subscribe to");
+      return;
+    }
+
+    try {
+      // Enable notifications if supported
+      if (_batteryCharacteristic!.properties.notify) {
+        await _batteryCharacteristic!.setNotifyValue(true);
+
+        // Cancel existing subscription
+        _batterySubscription?.cancel();
+
+        // Subscribe to battery level updates
+        _batterySubscription = _batteryCharacteristic!.lastValueStream.listen(
+          (data) {
+            if (data.isNotEmpty) {
+              final batteryLevel = data[0]; // Battery level is a single byte (0-100)
+              debugPrint("🔋 Battery level: $batteryLevel%");
+              _batteryLevelController.add(batteryLevel);
+            }
+          },
+          onError: (error) {
+            debugPrint("🔶 Battery subscription error: $error");
+          },
+          cancelOnError: false,
+        );
+
+        debugPrint("✅ PixelBluetoothService: Subscribed to battery level notifications");
+
+        // Also do an initial read to get current value
+        if (_batteryCharacteristic!.properties.read) {
+          final readData = await _batteryCharacteristic!.read();
+          if (readData.isNotEmpty) {
+            debugPrint("🔋 Battery level (initial read): ${readData[0]}%");
+            _batteryLevelController.add(readData[0]);
+          }
+        }
+      } else if (_batteryCharacteristic!.properties.read) {
+        // If only read is supported, read once
+        final data = await _batteryCharacteristic!.read();
+        if (data.isNotEmpty) {
+          final batteryLevel = data[0];
+          debugPrint("🔋 Battery level (read): $batteryLevel%");
+          _batteryLevelController.add(batteryLevel);
+        }
+      }
+    } catch (e) {
+      debugPrint("❌ Error subscribing to battery updates: $e");
+    }
+  }
+
+  /// Unsubscribe from battery updates
+  void _unsubscribeFromBattery() {
+    _batterySubscription?.cancel();
+    _batterySubscription = null;
+    _batteryCharacteristic = null;
   }
 
   /// Subscribe to TX characteristic for ESP32 notifications (root transfer, etc.)
@@ -962,11 +1097,13 @@ class PixelBluetoothService implements IBluetoothService {
     _stopConnectionMonitoring();
     _stopHealthDataWatchdog();
     _unsubscribeFromHealth();
+    _unsubscribeFromBattery();
     _unsubscribeFromTxNotifications();
     _isScanningController.close();
     _enhancedConnectionStateController.close();
     _healthDataController.close();
     _esp32NotificationController.close();
+    _batteryLevelController.close();
     debugPrint("🧹 PixelBluetoothService disposed with full cleanup");
   }
 }
