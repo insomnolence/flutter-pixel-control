@@ -12,7 +12,8 @@ class ConnectionAnalytics {
   /// New code should use connectionQuality instead.
   final int reconnectionAttempts;
   final List<String> errors;
-  final double batteryLevel;
+  final int batteryVoltageMv;  // Battery voltage in millivolts (-1 if unavailable)
+  final bool isBatteryCharging;  // Whether the battery is currently charging
   final int packetsTransmitted;
   final int packetsDropped;
   final Duration sessionDuration;
@@ -38,7 +39,8 @@ class ConnectionAnalytics {
     required this.connectionTime,
     this.reconnectionAttempts = 0,
     this.errors = const [],
-    this.batteryLevel = -1,
+    this.batteryVoltageMv = -1,
+    this.isBatteryCharging = false,
     this.packetsTransmitted = 0,
     this.packetsDropped = 0,
     this.sessionDuration = Duration.zero,
@@ -137,7 +139,8 @@ class ConnectionAnalytics {
     Duration? connectionTime,
     int? reconnectionAttempts,
     List<String>? errors,
-    double? batteryLevel,
+    int? batteryVoltageMv,
+    bool? isBatteryCharging,
     int? packetsTransmitted,
     int? packetsDropped,
     Duration? sessionDuration,
@@ -161,7 +164,8 @@ class ConnectionAnalytics {
       connectionTime: connectionTime ?? this.connectionTime,
       reconnectionAttempts: reconnectionAttempts ?? this.reconnectionAttempts,
       errors: errors ?? this.errors,
-      batteryLevel: batteryLevel ?? this.batteryLevel,
+      batteryVoltageMv: batteryVoltageMv ?? this.batteryVoltageMv,
+      isBatteryCharging: isBatteryCharging ?? this.isBatteryCharging,
       packetsTransmitted: packetsTransmitted ?? this.packetsTransmitted,
       packetsDropped: packetsDropped ?? this.packetsDropped,
       sessionDuration: sessionDuration ?? this.sessionDuration,
@@ -188,7 +192,8 @@ class ConnectionAnalytics {
     'connectionTime': connectionTime.inMilliseconds,
     'reconnectionAttempts': reconnectionAttempts,
     'errors': errors,
-    'batteryLevel': batteryLevel,
+    'batteryVoltageMv': batteryVoltageMv,
+    'isBatteryCharging': isBatteryCharging,
     'packetsTransmitted': packetsTransmitted,
     'packetsDropped': packetsDropped,
     'sessionDuration': sessionDuration.inMilliseconds,
@@ -215,7 +220,8 @@ class ConnectionAnalytics {
       connectionTime: Duration(milliseconds: json['connectionTime']),
       reconnectionAttempts: json['reconnectionAttempts'] ?? 0,
       errors: List<String>.from(json['errors'] ?? []),
-      batteryLevel: json['batteryLevel']?.toDouble() ?? -1,
+      batteryVoltageMv: json['batteryVoltageMv'] ?? json['batteryLevel']?.toInt() ?? -1,
+      isBatteryCharging: json['isBatteryCharging'] ?? false,
       packetsTransmitted: json['packetsTransmitted'] ?? 0,
       packetsDropped: json['packetsDropped'] ?? 0,
       sessionDuration: Duration(milliseconds: json['sessionDuration'] ?? 0),

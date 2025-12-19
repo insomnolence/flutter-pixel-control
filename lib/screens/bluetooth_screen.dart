@@ -663,9 +663,12 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                           ),
                           const SizedBox(height: 4),
                           _buildSignalStrengthRow(viewModel.currentAnalytics?.signalStrength ?? -70),
-                          if ((viewModel.currentAnalytics?.batteryLevel ?? -1) >= 0) ...[
+                          if ((viewModel.currentAnalytics?.batteryVoltageMv ?? -1) > 0) ...[
                             const SizedBox(height: 4),
-                            _buildBatteryLevelRow(viewModel.currentAnalytics!.batteryLevel.toInt()),
+                            _buildBatteryVoltageRow(
+                              viewModel.currentAnalytics!.batteryVoltageMv,
+                              viewModel.currentAnalytics!.isBatteryCharging,
+                            ),
                           ],
                         ] else
                           Text(
@@ -784,30 +787,43 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   /// Convert RSSI to percentage
   double _getSignalStrengthPercentage(int rssi) => rssiToPercentage(rssi);
 
-  /// Battery level indicator row for the connection card
-  Widget _buildBatteryLevelRow(int batteryLevel) {
-    final batteryColor = batteryLevel > 50 ? Colors.green :
-                        batteryLevel > 20 ? Colors.orange : Colors.red;
+  /// Battery voltage indicator row for the connection card
+  /// Uses voltage-based categories since LED load causes voltage sag making percentage unreliable
+  Widget _buildBatteryVoltageRow(int voltageMv, bool isCharging) {
+    // Voltage-based categories:
+    // - Green (≥3700mV) - Good/Full
+    // - Yellow (≥3500mV) - Medium
+    // - Orange (≥3200mV) - Low
+    // - Red (<3200mV) - Critical
 
-    // Determine battery icon based on level
+    Color batteryColor;
     IconData batteryIcon;
-    if (batteryLevel > 87) {
+    String category;
+
+    if (isCharging) {
+      batteryColor = Colors.lightBlue;
+      batteryIcon = Icons.battery_charging_full;
+      category = "Charging";
+    } else if (voltageMv >= 3700) {
+      batteryColor = Colors.green;
       batteryIcon = Icons.battery_full;
-    } else if (batteryLevel > 62) {
-      batteryIcon = Icons.battery_6_bar;
-    } else if (batteryLevel > 50) {
+      category = "Good";
+    } else if (voltageMv >= 3500) {
+      batteryColor = Colors.yellow.shade600;
       batteryIcon = Icons.battery_5_bar;
-    } else if (batteryLevel > 37) {
-      batteryIcon = Icons.battery_4_bar;
-    } else if (batteryLevel > 25) {
-      batteryIcon = Icons.battery_3_bar;
-    } else if (batteryLevel > 12) {
+      category = "Medium";
+    } else if (voltageMv >= 3200) {
+      batteryColor = Colors.orange;
       batteryIcon = Icons.battery_2_bar;
-    } else if (batteryLevel > 5) {
-      batteryIcon = Icons.battery_1_bar;
+      category = "Low";
     } else {
-      batteryIcon = Icons.battery_0_bar;
+      batteryColor = Colors.red;
+      batteryIcon = Icons.battery_alert;
+      category = "Critical";
     }
+
+    // Format voltage as X.XXV
+    final voltageV = (voltageMv / 1000.0).toStringAsFixed(2);
 
     return Row(
       children: [
@@ -818,11 +834,19 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         ),
         const SizedBox(width: 6),
         Text(
-          "$batteryLevel%",
+          "${voltageV}V",
           style: TextStyle(
             fontSize: 12,
             color: batteryColor,
             fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          "($category)",
+          style: TextStyle(
+            fontSize: 10,
+            color: batteryColor.withValues(alpha: 0.7),
           ),
         ),
       ],

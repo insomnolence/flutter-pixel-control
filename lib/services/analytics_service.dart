@@ -35,9 +35,9 @@ class AnalyticsService {
   Map<String, dynamic>? _latestHealthData;
   StreamSubscription<Map<String, dynamic>>? _healthSubscription;
 
-  // Battery level monitoring
-  int? _latestBatteryLevel;
-  StreamSubscription<int>? _batterySubscription;
+  // Battery status monitoring (voltage_mv, percentage, is_charging)
+  Map<String, dynamic>? _latestBatteryStatus;
+  StreamSubscription<Map<String, dynamic>>? _batterySubscription;
 
   /// Stream of current session metrics (updates every 5 seconds)
   Stream<ConnectionAnalytics?> get currentSessionMetrics => 
@@ -63,7 +63,7 @@ class AnalyticsService {
     if (differentDevice) {
       await endSession(); // End session for different device
       _latestHealthData = null; // Clear health data only for new device
-      _latestBatteryLevel = null; // Clear battery level for new device
+      _latestBatteryStatus = null; // Clear battery status for new device
     } else {
       // Same device - preserve health data but restart session tracking
       _stopMetricsTimer(); // Stop existing timer
@@ -196,7 +196,7 @@ class AnalyticsService {
     // Only clear health/battery data if explicitly requested (true disconnection)
     if (clearHealthData) {
       _latestHealthData = null;
-      _latestBatteryLevel = null;
+      _latestBatteryStatus = null;
       debugPrint("AnalyticsService: Cleared health and battery data (full disconnection)");
     } else {
       debugPrint("AnalyticsService: Preserved health and battery data (temporary state change)");
@@ -249,8 +249,9 @@ class AnalyticsService {
       isCurrentSession: true,
       // Enhanced connection quality
       connectionQuality: connectionQuality,
-      // Battery level (if available, otherwise -1)
-      batteryLevel: _latestBatteryLevel?.toDouble() ?? -1,
+      // Battery status (if available)
+      batteryVoltageMv: _latestBatteryStatus?['voltage_mv'] ?? -1,
+      isBatteryCharging: _latestBatteryStatus?['is_charging'] ?? false,
       // ESP32 Mesh Health Analytics (if available)
       meshHealthScore: _latestHealthData?['overall_score'],
       meshNeighbors: _latestHealthData?['active_neighbors'],
@@ -410,29 +411,29 @@ class AnalyticsService {
     debugPrint("AnalyticsService: Unsubscribed from ESP32 health data");
   }
 
-  /// Subscribe to battery level updates
+  /// Subscribe to battery status updates
   void _subscribeToBatteryData(IBluetoothService bluetoothService) {
     try {
-      _batterySubscription = bluetoothService.batteryLevelStream.listen(
-        (batteryLevel) {
-          _latestBatteryLevel = batteryLevel;
-          debugPrint("AnalyticsService: Received battery level: $batteryLevel%");
+      _batterySubscription = bluetoothService.batteryStatusStream.listen(
+        (batteryStatus) {
+          _latestBatteryStatus = batteryStatus;
+          debugPrint("AnalyticsService: Received battery status: ${batteryStatus['voltage_mv']}mV");
 
           // Immediately emit updated metrics when battery data arrives
           final metrics = _getCurrentMetrics();
           if (metrics != null) {
             _currentMetricsController.add(metrics);
-            debugPrint("AnalyticsService: Emitted immediate metrics update with battery level");
+            debugPrint("AnalyticsService: Emitted immediate metrics update with battery status");
           }
         },
         onError: (error) {
-          debugPrint("AnalyticsService: Battery level stream error: $error");
+          debugPrint("AnalyticsService: Battery status stream error: $error");
         },
       );
 
-      debugPrint("AnalyticsService: Subscribed to battery level updates");
+      debugPrint("AnalyticsService: Subscribed to battery status updates");
     } catch (e) {
-      debugPrint("AnalyticsService: Error subscribing to battery level: $e");
+      debugPrint("AnalyticsService: Error subscribing to battery status: $e");
     }
   }
 

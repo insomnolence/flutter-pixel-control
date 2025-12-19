@@ -36,7 +36,7 @@ abstract class IBluetoothService {
   Stream<BleConnectionState> get enhancedConnectionStateStream;
   Stream<Map<String, dynamic>> get healthDataStream;
   Stream<Esp32Notification> get esp32NotificationStream;
-  Stream<int> get batteryLevelStream;
+  Stream<Map<String, dynamic>> get batteryStatusStream;
   BleConnectionState get currentConnectionState;
   Future<bool> get isAvailable;
   Future<void> startScan({Duration? timeout});
@@ -70,8 +70,8 @@ class PixelBluetoothService implements IBluetoothService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Esp32Notification> _esp32NotificationController =
       StreamController<Esp32Notification>.broadcast();
-  final StreamController<int> _batteryLevelController =
-      StreamController<int>.broadcast();
+  final StreamController<Map<String, dynamic>> _batteryStatusController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   Timer? _scanTimer;
   Timer? _connectionTimeout;
@@ -130,7 +130,7 @@ class PixelBluetoothService implements IBluetoothService {
   Stream<Esp32Notification> get esp32NotificationStream => _esp32NotificationController.stream;
 
   @override
-  Stream<int> get batteryLevelStream => _batteryLevelController.stream;
+  Stream<Map<String, dynamic>> get batteryStatusStream => _batteryStatusController.stream;
 
   @override
   BleConnectionState get currentConnectionState => _currentState;
@@ -786,14 +786,10 @@ class PixelBluetoothService implements IBluetoothService {
         // Cancel existing subscription
         _batterySubscription?.cancel();
 
-        // Subscribe to battery level updates
+        // Subscribe to battery status updates (4-byte struct)
         _batterySubscription = _batteryCharacteristic!.lastValueStream.listen(
           (data) {
-            if (data.isNotEmpty) {
-              final batteryLevel = data[0]; // Battery level is a single byte (0-100)
-              debugPrint("🔋 Battery level: $batteryLevel%");
-              _batteryLevelController.add(batteryLevel);
-            }
+            _parseBatteryStatus(data);
           },
           onError: (error) {
             debugPrint("🔶 Battery subscription error: $error");
@@ -801,28 +797,52 @@ class PixelBluetoothService implements IBluetoothService {
           cancelOnError: false,
         );
 
-        debugPrint("✅ PixelBluetoothService: Subscribed to battery level notifications");
+        debugPrint("✅ PixelBluetoothService: Subscribed to battery status notifications");
 
         // Also do an initial read to get current value
         if (_batteryCharacteristic!.properties.read) {
           final readData = await _batteryCharacteristic!.read();
-          if (readData.isNotEmpty) {
-            debugPrint("🔋 Battery level (initial read): ${readData[0]}%");
-            _batteryLevelController.add(readData[0]);
-          }
+          _parseBatteryStatus(readData);
         }
       } else if (_batteryCharacteristic!.properties.read) {
         // If only read is supported, read once
         final data = await _batteryCharacteristic!.read();
-        if (data.isNotEmpty) {
-          final batteryLevel = data[0];
-          debugPrint("🔋 Battery level (read): $batteryLevel%");
-          _batteryLevelController.add(batteryLevel);
-        }
+        _parseBatteryStatus(data);
       }
     } catch (e) {
       debugPrint("❌ Error subscribing to battery updates: $e");
     }
+  }
+
+  /// Parse battery status data (4-byte struct: voltage_mv LE, percentage, is_charging)
+  void _parseBatteryStatus(List<int> data) {
+    if (data.length < 4) {
+      // Handle legacy 1-byte format for backwards compatibility
+      if (data.length == 1) {
+        debugPrint("🔋 Battery (legacy): ${data[0]}%");
+        _batteryStatusController.add({
+          'voltage_mv': 0,
+          'percentage': data[0],
+          'is_charging': false,
+        });
+      } else {
+        debugPrint("⚠️ Invalid battery data length: ${data.length} (expected 4)");
+      }
+      return;
+    }
+
+    // Parse 4-byte struct: voltage_mv (2 bytes LE) + percentage (1 byte) + is_charging (1 byte)
+    final voltageMv = data[0] | (data[1] << 8);
+    final percentage = data[2];
+    final isCharging = data[3] != 0;
+
+    debugPrint("🔋 Battery: ${voltageMv}mV (${percentage}%)${isCharging ? ' [charging]' : ''}");
+
+    _batteryStatusController.add({
+      'voltage_mv': voltageMv,
+      'percentage': percentage,
+      'is_charging': isCharging,
+    });
   }
 
   /// Unsubscribe from battery updates
@@ -1103,7 +1123,7 @@ class PixelBluetoothService implements IBluetoothService {
     _enhancedConnectionStateController.close();
     _healthDataController.close();
     _esp32NotificationController.close();
-    _batteryLevelController.close();
+    _batteryStatusController.close();
     debugPrint("🧹 PixelBluetoothService disposed with full cleanup");
   }
 }
